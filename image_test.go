@@ -233,7 +233,7 @@ func TestImageWatermark(t *testing.T) {
 		Opacity:    0.5,
 		Width:      200,
 		DPI:        100,
-		Background: Color{255, 255, 255, 255},
+		Background: Color{255, 255, 255},
 	})
 	if err != nil {
 		t.Error(err)
@@ -291,7 +291,7 @@ func TestImageWatermarkNoReplicate(t *testing.T) {
 		Width:       200,
 		DPI:         100,
 		NoReplicate: true,
-		Background:  Color{255, 255, 255, 255},
+		Background:  Color{255, 255, 255},
 	})
 	if err != nil {
 		t.Error(err)
@@ -403,7 +403,7 @@ func TestTransparentImageConvert(t *testing.T) {
 	image := initImage("transparent.png")
 	options := Options{
 		Type:       JPEG,
-		Background: Color{255, 255, 255, 255},
+		Background: Color{255, 255, 255},
 	}
 	buf, err := image.Process(options)
 	if err != nil {
@@ -550,7 +550,7 @@ func TestImageTrimParameters(t *testing.T) {
 	i := initImage("test.png")
 	options := Options{
 		Trim:       true,
-		Background: Color{0, 0, 0, 255},
+		Background: Color{0, 0, 0},
 		Threshold:  10.0,
 	}
 	buf, err := i.Process(options)
@@ -586,7 +586,7 @@ func TestRGBAEmbed(t *testing.T) {
 			Enlarge: true,
 			Embed: true,
 			Extend: ExtendBackground,
-			Background: Color{255, 255, 255, 255},
+			Background: ColorWithAlpha{Color{255, 255, 255}, 255},
 		})
 		if err != nil {
 			t.Errorf("The image could not be put on background: %v", err)
@@ -609,7 +609,7 @@ func TestRGBAEmbed(t *testing.T) {
 			Enlarge: true,
 			Embed: true,
 			Extend: ExtendBackground,
-			Background: Color{0, 0, 0, 0},
+			Background: ColorWithAlpha{Color{0, 0, 0}, 0},
 		})
 		if err != nil {
 			t.Errorf("The image could not be put on background: %v", err)
@@ -640,7 +640,7 @@ func TestRGBAEmbed(t *testing.T) {
 			Enlarge: true,
 			Embed: true,
 			Extend: ExtendBackground,
-			Background: Color{0, 0, 0, 0},
+			Background: ColorWithAlpha{Color{0, 0, 0}, 0},
 		})
 		if err != nil {
 			t.Errorf("The image could not be put on background: %v", err)
