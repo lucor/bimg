@@ -22,7 +22,15 @@ var (
 func resizer(buf []byte, o Options) ([]byte, error) {
 	defer C.vips_thread_shutdown()
 
-	image, imageType, err := loadImage(buf)
+	var image *C.VipsImage
+	var imageType ImageType
+	var err error
+	if o.ReadAllFrames {
+		image, imageType, err = loadImageAllFrames(buf)
+	} else {
+		image, imageType, err = loadImage(buf)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +151,19 @@ func resizer(buf []byte, o Options) ([]byte, error) {
 	}
 
 	return saveImage(image, o)
+}
+
+func loadImageAllFrames(buf []byte) (*C.VipsImage, ImageType, error) {
+	if len(buf) == 0 {
+		return nil, JPEG, errors.New("Image buffer is empty")
+	}
+
+	image, imageType, err := vipsReadAll(buf)
+	if err != nil {
+		return nil, JPEG, err
+	}
+
+	return image, imageType, nil
 }
 
 func loadImage(buf []byte) (*C.VipsImage, ImageType, error) {

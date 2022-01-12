@@ -366,7 +366,15 @@ func vipsWatermark(image *C.VipsImage, w Watermark) (*C.VipsImage, error) {
 	return out, nil
 }
 
+func vipsReadAll(buf []byte) (*C.VipsImage, ImageType, error) {
+	return vipsReadCommon(buf, -1)
+}
+
 func vipsRead(buf []byte) (*C.VipsImage, ImageType, error) {
+	return vipsReadCommon(buf, 1)
+}
+
+func vipsReadCommon(buf []byte, frames int) (*C.VipsImage, ImageType, error) {
 	var image *C.VipsImage
 	imageType := vipsImageType(buf)
 
@@ -377,7 +385,7 @@ func vipsRead(buf []byte) (*C.VipsImage, ImageType, error) {
 	length := C.size_t(len(buf))
 	imageBuf := unsafe.Pointer(&buf[0])
 
-	err := C.vips_init_image(imageBuf, length, C.int(imageType), &image)
+	err := C.vips_init_image(imageBuf, length, C.int(imageType), C.int(frames), &image)
 	if err != 0 {
 		return nil, UNKNOWN, catchVipsError()
 	}

@@ -228,6 +228,9 @@ type Options struct {
 	Palette        bool
 	// Speed defines the AVIF encoders CPU effort. Valid values are 0-8.
 	Speed int
+	// ReadAllFrames defines if libvips should read all frames.
+	// This option can be used to convert bewteen animated formats.
+	ReadAllFrames bool
 
 	// private fields
 	autoRotateOnly bool
