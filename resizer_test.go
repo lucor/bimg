@@ -412,6 +412,31 @@ func TestExtractOrEmbedImage(t *testing.T) {
 	}
 }
 
+func TestConvertAnimated(t *testing.T) {
+	img, err := os.Open("testdata/test.gif")
+	if err != nil {
+		t.Fatal(err)
+	}
+	buf, err := ioutil.ReadAll(img)
+	if err != nil {
+		t.Fatal(err)
+	}
+	img.Close()
+
+	formats := []ImageType{GIF, WEBP}
+	for _, format := range formats {
+		newImg, err := NewImage(buf).Convert(format)
+		if err != nil {
+			t.Fatal(err)
+		}
+		name := ImageTypeName(format)
+		if DetermineImageType(newImg) != format {
+			t.Fatalf("Image is not %s", name)
+		}
+		Write(fmt.Sprintf("testdata/test_convert_animated_out.%s", name), newImg)
+	}
+}
+
 func TestConvert(t *testing.T) {
 	width, height := 300, 240
 	formats := [3]ImageType{PNG, WEBP, JPEG}

@@ -174,6 +174,14 @@ func (i *Image) Flop() ([]byte, error) {
 // Convert converts image to another format.
 func (i *Image) Convert(t ImageType) ([]byte, error) {
 	options := Options{Type: t}
+	switch t {
+	case GIF:
+		options.ReadAllFrames = true
+	case WEBP:
+		options.ReadAllFrames = true
+	case HEIF:
+		options.ReadAllFrames = true
+	}
 	return i.Process(options)
 }
 
