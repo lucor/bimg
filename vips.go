@@ -256,6 +256,10 @@ func vipsExifShort(s string) string {
 	return s
 }
 
+func vipsIsAnimated(image *C.VipsImage) bool {
+	return int(C.vips_image_get_n_pages(image)) > 1
+}
+
 func vipsHasAlpha(image *C.VipsImage) bool {
 	return int(C.has_alpha_channel(image)) > 0
 }

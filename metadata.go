@@ -69,6 +69,7 @@ type ImageSize struct {
 
 // ImageMetadata represents the basic metadata fields
 type ImageMetadata struct {
+	Animated    bool
 	Orientation int
 	Channels    int
 	Alpha       bool
@@ -163,7 +164,7 @@ func ImageInterpretation(buf []byte) (Interpretation, error) {
 func Metadata(buf []byte) (ImageMetadata, error) {
 	defer C.vips_thread_shutdown()
 
-	image, imageType, err := vipsRead(buf)
+	image, imageType, err := vipsReadAll(buf)
 	if err != nil {
 		return ImageMetadata{}, err
 	}
@@ -177,6 +178,7 @@ func Metadata(buf []byte) (ImageMetadata, error) {
 	orientation := vipsExifIntTag(image, Orientation)
 
 	metadata := ImageMetadata{
+		Animated:    vipsIsAnimated(image),
 		Size:        size,
 		Channels:    int(image.Bands),
 		Orientation: orientation,
