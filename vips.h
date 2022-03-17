@@ -195,7 +195,7 @@ vips_type_find_save_bridge(int t) {
 }
 
 int
-vips_rotate_bridge(VipsImage *in, VipsImage **out, int angle) {
+vips_rotate_bridge(VipsImage *in, VipsImage **out, int angle, VipsArrayDouble *background) {
 
 	angle %= 360;
 
@@ -211,6 +211,9 @@ vips_rotate_bridge(VipsImage *in, VipsImage **out, int angle) {
     	return vips_rot(in, out, rotate, NULL);
     }
 
+	if (background) {
+		return vips_rotate(in, out, angle, "background", background, NULL);
+	}
 	return vips_rotate(in, out, angle, NULL);
 }
 

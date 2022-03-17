@@ -86,7 +86,7 @@ func TestVipsRotate(t *testing.T) {
 	for _, file := range files {
 		image, _, _ := vipsRead(readImage(file.name))
 
-		newImg, err := vipsRotate(image, file.rotate)
+		newImg, err := vipsRotate(image, file.rotate, nil)
 		if err != nil {
 			t.Fatal("Cannot rotate the image")
 		}

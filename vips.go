@@ -278,11 +278,18 @@ func vipsSpace(image *C.VipsImage) string {
 	return C.GoString(C.vips_enum_nick_bridge(image))
 }
 
-func vipsRotate(image *C.VipsImage, angle Angle) (*C.VipsImage, error) {
+func vipsRotate(image *C.VipsImage, angle Angle, background RGBAProvider) (*C.VipsImage, error) {
 	var out *C.VipsImage
 	defer C.g_object_unref(C.gpointer(image))
 
-	err := C.vips_rotate_bridge(image, &out, C.int(angle))
+	var vipsBackground *C.VipsArrayDouble
+	if background != nil {
+		r, g, b, _ := background.RGBA()
+		bgArray := [3]C.double{C.double(r), C.double(g), C.double(b)}
+		vipsBackground = C.vips_array_double_new(&bgArray[0], 3)
+	}
+
+	err := C.vips_rotate_bridge(image, &out, C.int(angle), vipsBackground)
 	if err != 0 {
 		return nil, catchVipsError()
 	}
