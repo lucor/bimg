@@ -283,7 +283,7 @@ vips_embed_bridge(VipsImage *in, VipsImage **out, int left, int top, int width, 
 		// We don't have an alpha channel but request alpha to be present? Add a channel then.
 		if (hasAlpha == 0 && a < 255.0) {
 			VipsImage *withAlpha = vips_image_new();
-			vips_addalpha(in, &withAlpha);
+			vips_addalpha(in, &withAlpha, NULL);
 			double background[4] = {r, g, b, a};
 			VipsArrayDouble *vipsBackground = vips_array_double_new(background, 4);
 			int result = vips_embed(withAlpha, out, left, top, width, height, "extend", extend, "background", vipsBackground, NULL);
