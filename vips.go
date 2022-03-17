@@ -700,7 +700,7 @@ func vipsEmbed(input *C.VipsImage, left, top, width, height int, extend Extend, 
 	}
 
 	if extend == ExtendBackground && background == nil {
- 		return nil, errors.New("cannot use ExtendBackground without specifying a background")
+		return nil, errors.New("cannot use ExtendBackground without specifying a background")
 	}
 
 	// If it's not ExtendBackground, the values are not really used anyway. Therefore just use black.

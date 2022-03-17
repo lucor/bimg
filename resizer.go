@@ -363,7 +363,7 @@ func rotateAndFlipImage(image *C.VipsImage, o Options) (*C.VipsImage, bool, erro
 
 	if o.Rotate > 0 {
 		rotated = true
-		image, err = vipsRotate(image, getAngle(o.Rotate))
+		image, err = vipsRotate(image, o.Rotate)
 	}
 
 	if o.Flip {
@@ -641,12 +641,4 @@ func calculateShrink(factor float64, i Interpolator) int {
 
 func calculateResidual(factor float64, shrink int) float64 {
 	return float64(shrink) / factor
-}
-
-func getAngle(angle Angle) Angle {
-	divisor := angle % 90
-	if divisor != 0 {
-		angle = angle - divisor
-	}
-	return Angle(math.Min(float64(angle), 270))
 }

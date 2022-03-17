@@ -196,33 +196,22 @@ vips_type_find_save_bridge(int t) {
 
 int
 vips_rotate_bridge(VipsImage *in, VipsImage **out, int angle) {
-	int rotate = VIPS_ANGLE_D0;
 
 	angle %= 360;
 
-	if (angle == 45) {
-		rotate = VIPS_ANGLE45_D45;
-	} else if (angle == 90) {
-		rotate = VIPS_ANGLE_D90;
-	} else if (angle == 135) {
-		rotate = VIPS_ANGLE45_D135;
-	} else if (angle == 180) {
-		rotate = VIPS_ANGLE_D180;
-	} else if (angle == 225) {
-		rotate = VIPS_ANGLE45_D225;
-	} else if (angle == 270) {
-		rotate = VIPS_ANGLE_D270;
-	} else if (angle == 315) {
-		rotate = VIPS_ANGLE45_D315;
-	} else {
-		angle = 0;
-	}
+    // Check, if a special rotation is hit, that allows us to use
+    // optimized functions.
+    if (angle % 90 == 0) {
+    	int rotate = VIPS_ANGLE_D0;
+	    switch (angle) {
+    		case 90:  rotate = VIPS_ANGLE_D90; break;
+    		case 180: rotate = VIPS_ANGLE_D180; break;
+    		case 270: rotate = VIPS_ANGLE_D270; break;
+    	}
+    	return vips_rot(in, out, rotate, NULL);
+    }
 
-	if (angle > 0 && angle % 90 != 0) {
-		return vips_rot45(in, out, "angle", rotate, NULL);
-	} else {
-		return vips_rot(in, out, rotate, NULL);
-	}
+	return vips_rotate(in, out, angle, NULL);
 }
 
 int
@@ -279,7 +268,7 @@ int
 vips_embed_bridge(VipsImage *in, VipsImage **out, int left, int top, int width, int height, int extend, double r, double g, double b, double a) {
 	if (extend == VIPS_EXTEND_BACKGROUND) {
 		int hasAlpha = has_alpha_channel(in);
-		
+
 		// We don't have an alpha channel but request alpha to be present? Add a channel then.
 		if (hasAlpha == 0 && a < 255.0) {
 			VipsImage *withAlpha = vips_image_new();

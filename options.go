@@ -172,6 +172,7 @@ type RGBAProvider interface {
 
 // ColorBlack is a shortcut to black RGB color representation.
 var ColorBlack = Color{0x00, 0x00, 0x00}
+
 // ColorWhite is a shortcut to white RGB color representation.
 var ColorWhite = Color{0xFF, 0xFF, 0xFF}
 
@@ -251,7 +252,7 @@ type Options struct {
 	OutputICC      string
 	InputICC       string
 	Palette        bool
-	// Speed defines the AVIF encoders CPU effort. Valid values are: 
+	// Speed defines the AVIF encoders CPU effort. Valid values are:
 	// 0-8 for AVIF encoding.
 	// 0-9 for PNG encoding.
 	Speed int
