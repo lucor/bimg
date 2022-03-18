@@ -314,7 +314,7 @@ func TestGaussianBlur(t *testing.T) {
 }
 
 func TestSharpen(t *testing.T) {
-	options := Options{Width: 800, Height: 600, Sharpen: Sharpen{Radius: 1, X1: 1.5, Y2: 20, Y3: 50, M1: 1, M2: 2}}
+	options := Options{Width: 800, Height: 600, Sharpen: Sharpen{Sigma: 1, X1: 1.5, Y2: 20, Y3: 50, M1: 1, M2: 2}}
 	buf, _ := Read("testdata/test.jpg")
 
 	newImg, err := Resize(buf, options)

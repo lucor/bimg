@@ -204,12 +204,12 @@ type GaussianBlur struct {
 
 // Sharpen represents the image sharp transformation options.
 type Sharpen struct {
-	Radius int
-	X1     float64
-	Y2     float64
-	Y3     float64
-	M1     float64
-	M2     float64
+	Sigma float64
+	X1    float64
+	Y2    float64
+	Y3    float64
+	M1    float64
+	M2    float64
 }
 
 // Options represents the supported image transformation options.

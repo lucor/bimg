@@ -230,7 +230,7 @@ func shouldTransformImage(o Options, inWidth, inHeight int) bool {
 }
 
 func shouldApplyEffects(o Options) bool {
-	return o.GaussianBlur.Sigma > 0 || o.GaussianBlur.MinAmpl > 0 || o.Sharpen.Radius > 0 && o.Sharpen.Y2 > 0 || o.Sharpen.Y3 > 0
+	return o.GaussianBlur.Sigma > 0 || o.GaussianBlur.MinAmpl > 0 || o.Sharpen.Sigma > 0 && o.Sharpen.Y2 > 0 || o.Sharpen.Y3 > 0
 }
 
 func transformImage(image *C.VipsImage, o Options, shrink int, residual float64) (*C.VipsImage, error) {
@@ -283,7 +283,7 @@ func applyEffects(image *C.VipsImage, o Options) (*C.VipsImage, error) {
 		}
 	}
 
-	if o.Sharpen.Radius > 0 && o.Sharpen.Y2 > 0 || o.Sharpen.Y3 > 0 {
+	if o.Sharpen.Sigma > 0 && o.Sharpen.Y2 > 0 || o.Sharpen.Y3 > 0 {
 		image, err = vipsSharpen(image, o.Sharpen)
 		if err != nil {
 			return nil, err
