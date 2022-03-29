@@ -18,7 +18,7 @@ func TestDeterminateImageType(t *testing.T) {
 		{"test.gif", GIF},
 		{"test.pdf", PDF},
 		{"test.svg", SVG},
-		// {"test.jp2", MAGICK},
+		{"test.jp2", JP2K},
 		{"test.heic", HEIF},
 		{"test2.heic", HEIF},
 		{"test3.heic", HEIF},

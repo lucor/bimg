@@ -7,6 +7,7 @@ package bimg
 import "C"
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math"
@@ -205,6 +206,9 @@ func VipsIsTypeSupported(t ImageType) bool {
 	if t == AVIF {
 		return int(C.vips_type_find_bridge(C.HEIF)) != 0
 	}
+	if t == JP2K {
+		return int(C.vips_type_find_bridge(C.JP2K)) != 0
+	}
 	return false
 }
 
@@ -232,6 +236,9 @@ func VipsIsTypeSupportedSave(t ImageType) bool {
 	}
 	if t == GIF {
 		return int(C.vips_type_find_save_bridge(C.GIF)) != 0
+	}
+	if t == JP2K {
+		return int(C.vips_type_find_save_bridge(C.JP2K)) != 0
 	}
 	return false
 }
@@ -446,7 +453,7 @@ func vipsFlattenBackground(image *C.VipsImage, background RGBAProvider) (*C.Vips
 	}
 
 	if vipsHasAlpha(image) {
-		err := C.vips_flatten_background_brigde(image, &outImage,
+		err := C.vips_flatten_background_bridge(image, &outImage,
 			backgroundC[0], backgroundC[1], backgroundC[2])
 		if int(err) != 0 {
 			return nil, catchVipsError()
@@ -553,6 +560,8 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 		saveErr = C.vips_avifsave_bridge(tmpImage, &ptr, &length, strip, quality, lossless, speed)
 	case GIF:
 		saveErr = C.vips_gifsave_bridge(tmpImage, &ptr, &length, strip)
+	case JP2K:
+		saveErr = C.vips_jp2ksave_bridge(tmpImage, &ptr, &length, strip, quality, lossless)
 	default:
 		saveErr = C.vips_jpegsave_bridge(tmpImage, &ptr, &length, strip, quality, interlace)
 	}
@@ -808,6 +817,10 @@ func vipsImageType(buf []byte) ImageType {
 	if IsTypeSupported(HEIF) && buf[4] == 0x66 && buf[5] == 0x74 && buf[6] == 0x79 && buf[7] == 0x70 &&
 		buf[8] == 0x61 && buf[9] == 0x76 && buf[10] == 0x69 && buf[11] == 0x66 {
 		return AVIF
+	}
+	if IsTypeSupported(JP2K) && (bytes.HasPrefix(buf, []byte{0x0, 0x0, 0x0, 0xC, 0x6A, 0x50, 0x20, 0x20, 0xD, 0xA, 0x87, 0xA}) ||
+		bytes.HasPrefix(buf, []byte{0xFF, 0x4F, 0xFF, 0x51})) {
+		return JP2K
 	}
 
 	return UNKNOWN
