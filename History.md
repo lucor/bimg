@@ -1,4 +1,21 @@
 
+v1.1.9 / 2022-04-05
+===================
+
+  * chore(History): version changes
+  * Merge pull request #374 from Mereng/brightness_contrast
+  * Merge pull request #393 from lucor/gifsave
+  * Add GIF save support from libvips 8.12
+  * Support brightness and contrast
+
+v1.1.8 / 2022-04-05
+===================
+
+  * chore(version): bump
+  * Merge pull request #405 from igsr5/feat/#404-support-way-to-change–MaxSize
+  * Fix review
+  * Add getter, setter for MaxSize
+
 v1.1.7 / 2022-02-23
 ===================
 

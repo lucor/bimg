@@ -149,6 +149,18 @@ func resizer(buf []byte, o Options) ([]byte, error) {
 		return nil, err
 	}
 
+	// Apply brightness, if necessary
+	image, err = applyBrightness(image, o)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply contrast, if necessary
+	image, err = applyContrast(image, o)
+	if err != nil {
+		return nil, err
+	}
+
 	return saveImage(image, o)
 }
 
@@ -640,4 +652,34 @@ func calculateShrink(factor float64, i Interpolator) int {
 
 func calculateResidual(factor float64, shrink int) float64 {
 	return float64(shrink) / factor
+}
+
+func getAngle(angle Angle) Angle {
+	divisor := angle % 90
+	if divisor != 0 {
+		angle = angle - divisor
+	}
+	return Angle(math.Min(float64(angle), 270))
+}
+
+func applyBrightness(image *C.VipsImage, o Options) (*C.VipsImage, error) {
+	var err error
+	if o.Brightness != 0 {
+		image, err = vipsBrightness(image, o.Brightness)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return image, nil
+}
+
+func applyContrast(image *C.VipsImage, o Options) (*C.VipsImage, error) {
+	var err error
+	if o.Contrast > 0 {
+		image, err = vipsContrast(image, o.Contrast)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return image, nil
 }

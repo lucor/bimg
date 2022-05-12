@@ -5,13 +5,31 @@ package bimg
 #include "vips/vips.h"
 */
 import "C"
+import "errors"
 
 const (
 	// Quality defines the default JPEG quality to be used.
 	Quality = 75
-	// MaxSize defines the maximum pixels width or height supported.
-	MaxSize = 16383
 )
+
+// maxSize defines maximum pixels width or height supported.
+var maxSize = 16383
+
+// MaxSize returns maxSize.
+func MaxSize() int {
+	return maxSize
+}
+
+// SetMaxSize sets maxSize.
+func SetMaxsize(s int) error {
+	if s <= 0 {
+		return errors.New("Size must be higher than zero.")
+	}
+
+	maxSize = s
+
+	return nil
+}
 
 // Gravity represents the image gravity value.
 type Gravity int
@@ -249,6 +267,8 @@ type Options struct {
 	Sharpen        Sharpen
 	Threshold      float64
 	Gamma          float64
+	Brightness     float64
+	Contrast       float64
 	OutputICC      string
 	InputICC       string
 	Palette        bool
