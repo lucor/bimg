@@ -280,6 +280,9 @@ type Options struct {
 	// This option can be used to convert bewteen animated formats.
 	ReadAllFrames bool
 
+	// StripEXIFOrientation if true will always strip the EXIF Orientation tag
+	StripEXIFOrientation bool
+
 	// private fields
 	autoRotateOnly bool
 }

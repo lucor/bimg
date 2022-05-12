@@ -58,6 +58,10 @@ type vipsSaveOptions struct {
 	OutputICC      string // Absolute path to the output ICC profile
 	Interpretation Interpretation
 	Palette        bool
+
+	// StripEXIFOrientation if true will always strip the EXIF Orientation tag
+	StripEXIFOrientation bool
+
 }
 
 type vipsWatermarkOptions struct {
@@ -542,6 +546,13 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 	lossless := C.int(boolToInt(o.Lossless))
 	palette := C.int(boolToInt(o.Palette))
 	speed := C.int(o.Speed)
+
+	if !o.StripMetadata && o.StripEXIFOrientation {
+		// Remove orientation field
+		field := C.CString(C.EXIF_IFD0_ORIENTATION)
+		defer C.free(unsafe.Pointer(field))
+		C.vips_image_remove(tmpImage, field)
+	}
 
 	if o.Type != 0 && !IsTypeSupportedSave(o.Type) {
 		return nil, fmt.Errorf("VIPS cannot save to %#v", ImageTypes[o.Type])
