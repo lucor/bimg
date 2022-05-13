@@ -16,6 +16,9 @@ import (
 	"strings"
 	"sync"
 	"unsafe"
+
+	"github.com/imgproxy/imgproxy/v3/imagemeta/iptc"
+	"github.com/trimmer-io/go-xmp/xmp"
 )
 
 // VipsVersion exposes the current libvips semantic version
@@ -62,6 +65,9 @@ type vipsSaveOptions struct {
 	// StripEXIFOrientation if true will always strip the EXIF Orientation tag
 	StripEXIFOrientation bool
 
+	// KeepCopyrightMetadata if true will preserve the copyright metadata info, if any,
+	// even if StripMetadata is set. Note: it will look into EXIF, XMP and IPTC data.
+	KeepCopyrightMetadata bool
 }
 
 type vipsWatermarkOptions struct {
@@ -554,6 +560,25 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 		C.vips_image_remove(tmpImage, field)
 	}
 
+	if o.StripMetadata && o.KeepCopyrightMetadata {
+		// libvips allows direct access only to EXIF metadata fields.
+		// XMP and IPTC metadata are available in raw format
+		//
+		// Remove from the libvips metadata map fields that do not contain copyright data
+		foundExif := C.keep_exif_copyright(tmpImage)
+		// Now the libvips metadata map contains:
+		// EXIF: only metadata copyright fields
+		// XMP and IPTC: original data, if any, in raw format
+		// Strip from XMP all metadata except copyright
+		foundXMP, _ := stripMetadataXMP(tmpImage)
+		// Strip from IPTC all metadata except copyright
+		foundIPTC, _ := stripMetadataIPTC(tmpImage)
+		// disable strip on save since metadata is already stripped
+		if foundExif == 1 || foundXMP || foundIPTC {
+			strip = 0
+		}
+	}
+
 	if o.Type != 0 && !IsTypeSupportedSave(o.Type) {
 		return nil, fmt.Errorf("VIPS cannot save to %#v", ImageTypes[o.Type])
 	}
@@ -934,4 +959,155 @@ func vipsContrast(image *C.VipsImage, contrast float64) (*C.VipsImage, error) {
 		return nil, catchVipsError()
 	}
 	return out, nil
+}
+
+func vipsGetMetadataRaw(image *C.VipsImage, name string) ([]byte, error) {
+	var (
+		tmp  unsafe.Pointer
+		size C.size_t
+	)
+
+	if C.vips_image_get_blob(image, C.CString(name), &tmp, &size) != 0 {
+		return nil, catchVipsError()
+	}
+	return C.GoBytes(tmp, C.int(size)), nil
+}
+
+func vipsSetMetadataRaw(image *C.VipsImage, name string, value []byte) {
+	defer runtime.KeepAlive(value)
+	C.vips_image_set_blob_copy(image, C.CString(name), unsafe.Pointer(&value[0]), C.size_t(len(value)))
+}
+
+// stripMetadataXMP strips all XMP metadata except the ones related to copyright
+func stripMetadataXMP(image *C.VipsImage) (bool, error) {
+	// Code in this function has been adapted from https://github.com/imgproxy/imgproxy/blob/v3.5.0/processing/finalize.go
+	// Copyright (c) 2017 Sergey Alexandrovich License MIT
+	// See https://github.com/imgproxy/imgproxy/blob/v3.5.0/LICENSE for full license
+	data, err := vipsGetMetadataRaw(image, C.VIPS_META_XMP_NAME)
+	if err != nil {
+		return false, err
+	}
+
+	if len(data) == 0 {
+		return false, nil
+	}
+
+	xmpDoc, err := xmp.Read(bytes.NewReader(data))
+	if err != nil {
+		return false, nil
+	}
+
+	namespaces := xmpDoc.Namespaces()
+	filteredNs := namespaces[:0]
+
+	for _, ns := range namespaces {
+		if ns.Name == "xmpRights" || ns.Name == "cc" || ns.Name == "dc" || ns.Name == "photoshop" {
+			// namespaces that could defines copyright data, keep and filter later if needed
+			filteredNs = append(filteredNs, ns)
+		}
+	}
+	xmpDoc.FilterNamespaces(filteredNs)
+
+	keepCopyrightNodes := func(n *xmp.Node, ns string, copyrightNames []string) {
+		if n.Name() != ns {
+			return
+		}
+
+		filteredNodes := xmp.NodeList{}
+		for _, nn := range n.Nodes {
+			for _, cn := range copyrightNames {
+				if nn.Name() == cn {
+					filteredNodes = append(filteredNodes, nn)
+					break
+				}
+			}
+		}
+		n.Nodes = filteredNodes
+		if len(n.Nodes) == 0 {
+			xmpDoc.RemoveNamespaceByName(ns)
+		}
+		return
+	}
+
+	nodes := xmpDoc.Nodes()
+	for _, n := range nodes {
+		keepCopyrightNodes(n, "dc", []string{"rights", "contributor", "creator", "publisher"})
+		keepCopyrightNodes(n, "photoshop", []string{"Credit"})
+	}
+
+	if len(xmpDoc.Nodes()) == 0 {
+		field := C.CString(C.VIPS_META_XMP_NAME)
+		defer C.free(unsafe.Pointer(field))
+		return false, nil
+	}
+
+	data, err = xmp.Marshal(xmpDoc)
+	if err != nil {
+		field := C.CString(C.VIPS_META_XMP_NAME)
+		defer C.free(unsafe.Pointer(field))
+		return false, nil
+	}
+
+	vipsSetMetadataRaw(image, C.VIPS_META_XMP_NAME, data)
+	return true, nil
+}
+
+// stripMetadataIPTC strip all IPTC metadata except the ones related to copyright
+func stripMetadataIPTC(image *C.VipsImage) (bool, error) {
+	// Code in this function has been adapted from https://github.com/imgproxy/imgproxy/blob/v3.5.0/processing/finalize.go
+	// Copyright (c) 2017 Sergey Alexandrovich License MIT
+	// See https://github.com/imgproxy/imgproxy/blob/v3.5.0/LICENSE for full license
+	data, err := vipsGetMetadataRaw(image, C.VIPS_META_IPTC_NAME)
+	if err != nil {
+		return false, err
+	}
+
+	if len(data) == 0 {
+		return false, nil
+	}
+
+	iptcMap := make(iptc.IptcMap)
+	err = iptc.ParsePS3(data, iptcMap)
+	if err != nil {
+		field := C.CString(C.VIPS_META_IPTC_NAME)
+		defer C.free(unsafe.Pointer(field))
+		C.vips_image_remove(image, field)
+		return false, nil
+	}
+
+	const (
+		applicationTag                      = 2
+		applicationRecordByLineTag          = 80
+		applicationRecordCreditTag          = 110
+		applicationRecordCopyrightNoticeTag = 110
+	)
+
+	for key := range iptcMap {
+		if key.RecordID != applicationTag {
+			delete(iptcMap, key)
+			continue
+		}
+		if key.TagID == applicationRecordByLineTag {
+			continue
+		}
+		if key.TagID == applicationRecordCreditTag {
+			continue
+		}
+		if key.TagID == applicationRecordCopyrightNoticeTag {
+			continue
+		}
+		delete(iptcMap, key)
+	}
+
+	if len(iptcMap) == 0 {
+		field := C.CString(C.VIPS_META_IPTC_NAME)
+		defer C.free(unsafe.Pointer(field))
+		C.vips_image_remove(image, field)
+		return false, nil
+	}
+
+	data = iptcMap.Dump()
+
+	vipsSetMetadataRaw(image, C.VIPS_META_IPTC_NAME, data)
+	return true, nil
 }

@@ -283,6 +283,10 @@ type Options struct {
 	// StripEXIFOrientation if true will always strip the EXIF Orientation tag
 	StripEXIFOrientation bool
 
+	// KeepCopyrightMetadata if true will preserve the copyright metadata info, if any,
+	// even if StripMetadata is set. Note: it will look into EXIF, XMP and IPTC data.
+	KeepCopyrightMetadata bool
+
 	// private fields
 	autoRotateOnly bool
 }

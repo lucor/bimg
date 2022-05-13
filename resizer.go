@@ -212,19 +212,20 @@ func applyDefaults(o Options, imageType ImageType) Options {
 
 func saveImage(image *C.VipsImage, o Options) ([]byte, error) {
 	saveOptions := vipsSaveOptions{
-		Quality:              o.Quality,
-		Type:                 o.Type,
-		Compression:          o.Compression,
-		Interlace:            o.Interlace,
-		NoProfile:            o.NoProfile,
-		Interpretation:       o.Interpretation,
-		InputICC:             o.InputICC,
-		OutputICC:            o.OutputICC,
-		StripMetadata:        o.StripMetadata,
-		Lossless:             o.Lossless,
-		Palette:              o.Palette,
-		Speed:                o.Speed,
-		StripEXIFOrientation: o.StripEXIFOrientation,
+		Quality:               o.Quality,
+		Type:                  o.Type,
+		Compression:           o.Compression,
+		Interlace:             o.Interlace,
+		NoProfile:             o.NoProfile,
+		Interpretation:        o.Interpretation,
+		InputICC:              o.InputICC,
+		OutputICC:             o.OutputICC,
+		StripMetadata:         o.StripMetadata,
+		Lossless:              o.Lossless,
+		Palette:               o.Palette,
+		Speed:                 o.Speed,
+		KeepCopyrightMetadata: o.KeepCopyrightMetadata,
+		StripEXIFOrientation:  o.StripEXIFOrientation,
 	}
 	// Finally get the resultant buffer
 	return vipsSave(image, saveOptions)

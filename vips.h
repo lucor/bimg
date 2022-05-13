@@ -718,3 +718,49 @@ int vips_contrast_bridge(VipsImage *in, VipsImage **out, double k)
 {
     return vips_linear1(in, out, k , 0.0, NULL);
 }
+
+// static void *
+// remove_no_metadata_fields( VipsImage *image, const char *name, GValue *value, void *a ) {
+// 	if (strcmp(name, "xmp-data") == 0) return(NULL);
+// 	if (strcmp(name, "iptc-data") == 0) return(NULL);
+// 	if (strcmp(name, "exif-ifd0-Copyright") == 0) return(NULL);
+// 	if (strcmp(name, "exif-ifd0-Artist") == 0) return(NULL);
+// 	vips_image_remove(image, name);
+//   	return( NULL );
+// }
+
+// static void
+// strip_no_copyright_metadata(VipsImage *image) {
+// 	vips_image_map(image, remove_no_metadata_fields, NULL );
+// }
+
+
+int
+keep_exif_copyright(VipsImage *image) {
+
+	int found = 0;
+	gchar **fields = vips_image_get_fields(image);
+
+	for (int i = 0; fields[i] != NULL; i++) {
+		gchar *name = fields[i];
+
+		// ensure xmp and iptc data are not removed
+		if (strcmp(name, "xmp-data") == 0) continue;
+		if (strcmp(name, "iptc-data") == 0) continue;
+
+		if (strcmp(name, "exif-ifd0-Copyright") == 0) {
+			found = 1;
+			continue;
+		}
+		if (strcmp(name, "exif-ifd0-Artist") == 0) {
+			found = 1;
+			continue;
+		}
+
+		vips_image_remove(image, name);
+	}
+
+	g_strfreev(fields);
+
+	return found;
+}
