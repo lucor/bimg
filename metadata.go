@@ -161,6 +161,18 @@ func ImageInterpretation(buf []byte) (Interpretation, error) {
 }
 
 // Metadata returns the image metadata (size, type, alpha channel, profile, EXIF orientation...).
+func HasCopyrightMetadata(buf []byte) (bool, error) {
+	defer C.vips_thread_shutdown()
+
+	image, _, err := vipsReadAll(buf)
+	if err != nil {
+		return false, err
+	}
+	defer C.g_object_unref(C.gpointer(image))
+	return keepCopyrightMetadata(image), nil
+}
+
+// Metadata returns the image metadata (size, type, alpha channel, profile, EXIF orientation...).
 func Metadata(buf []byte) (ImageMetadata, error) {
 	defer C.vips_thread_shutdown()
 

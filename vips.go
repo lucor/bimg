@@ -527,6 +527,22 @@ func vipsPreSave(image *C.VipsImage, o *vipsSaveOptions) (*C.VipsImage, error) {
 	return image, nil
 }
 
+// keepCopyright removes from the libvips metadata map fields that do not contain copyright data
+// It returns true, if copyright data is found
+func keepCopyrightMetadata(image *C.VipsImage) bool {
+	// Remove from the libvips metadata map fields that do not contain copyright data
+	foundExif := C.keep_exif_copyright(image)
+	// Now the libvips metadata map contains:
+	// EXIF: only metadata copyright fields
+	// XMP and IPTC: original data, if any, in raw format
+	// Strip from XMP all metadata except copyright
+	foundXMP, _ := stripMetadataXMP(image)
+	// Strip from IPTC all metadata except copyright
+	foundIPTC, _ := stripMetadataIPTC(image)
+	// disable strip on save since metadata is already stripped
+	return foundExif == 1 || foundXMP || foundIPTC
+}
+
 func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 	defer C.g_object_unref(C.gpointer(image))
 
@@ -561,20 +577,9 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 	}
 
 	if o.StripMetadata && o.KeepCopyrightMetadata {
-		// libvips allows direct access only to EXIF metadata fields.
-		// XMP and IPTC metadata are available in raw format
-		//
-		// Remove from the libvips metadata map fields that do not contain copyright data
-		foundExif := C.keep_exif_copyright(tmpImage)
-		// Now the libvips metadata map contains:
-		// EXIF: only metadata copyright fields
-		// XMP and IPTC: original data, if any, in raw format
-		// Strip from XMP all metadata except copyright
-		foundXMP, _ := stripMetadataXMP(tmpImage)
-		// Strip from IPTC all metadata except copyright
-		foundIPTC, _ := stripMetadataIPTC(tmpImage)
+		found := keepCopyrightMetadata(tmpImage)
 		// disable strip on save since metadata is already stripped
-		if foundExif == 1 || foundXMP || foundIPTC {
+		if found {
 			strip = 0
 		}
 	}
@@ -1017,7 +1022,9 @@ func stripMetadataXMP(image *C.VipsImage) (bool, error) {
 		for _, nn := range n.Nodes {
 			for _, cn := range copyrightNames {
 				if nn.Name() == cn {
-					filteredNodes = append(filteredNodes, nn)
+					if nn.Value != "" {
+						filteredNodes = append(filteredNodes, nn)
+					}
 					break
 				}
 			}
@@ -1026,7 +1033,6 @@ func stripMetadataXMP(image *C.VipsImage) (bool, error) {
 		if len(n.Nodes) == 0 {
 			xmpDoc.RemoveNamespaceByName(ns)
 		}
-		return
 	}
 
 	nodes := xmpDoc.Nodes()
@@ -1038,6 +1044,7 @@ func stripMetadataXMP(image *C.VipsImage) (bool, error) {
 	if len(xmpDoc.Nodes()) == 0 {
 		field := C.CString(C.VIPS_META_XMP_NAME)
 		defer C.free(unsafe.Pointer(field))
+		C.vips_image_remove(image, field)
 		return false, nil
 	}
 
@@ -1045,6 +1052,7 @@ func stripMetadataXMP(image *C.VipsImage) (bool, error) {
 	if err != nil {
 		field := C.CString(C.VIPS_META_XMP_NAME)
 		defer C.free(unsafe.Pointer(field))
+		C.vips_image_remove(image, field)
 		return false, nil
 	}
 
