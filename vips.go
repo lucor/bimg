@@ -553,9 +553,9 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 	palette := C.int(boolToInt(o.Palette))
 	speed := C.int(o.Speed)
 
-	if !o.StripMetadata && o.StripEXIFOrientation {
+	if o.StripEXIFOrientation {
 		// Remove orientation field
-		field := C.CString(C.EXIF_IFD0_ORIENTATION)
+		field := C.CString(C.VIPS_META_ORIENTATION)
 		defer C.free(unsafe.Pointer(field))
 		C.vips_image_remove(tmpImage, field)
 	}
