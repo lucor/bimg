@@ -1087,7 +1087,7 @@ func stripMetadataIPTC(image *C.VipsImage) (bool, error) {
 		applicationTag                      = 2
 		applicationRecordByLineTag          = 80
 		applicationRecordCreditTag          = 110
-		applicationRecordCopyrightNoticeTag = 110
+		applicationRecordCopyrightNoticeTag = 116
 	)
 
 	for key := range iptcMap {
