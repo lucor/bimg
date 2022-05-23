@@ -728,6 +728,22 @@ func vipsShrink(input *C.VipsImage, shrink int) (*C.VipsImage, error) {
 	var image *C.VipsImage
 	defer C.g_object_unref(C.gpointer(input))
 
+	if input.Xsize == 1 {
+		err := C.vips_shrinkv_bridge(input, &image, C.int(shrink))
+		if err != 0 {
+			return nil, catchVipsError()
+		}
+		return image, nil
+	}
+
+	if input.Ysize == 1 {
+		err := C.vips_shrinkh_bridge(input, &image, C.int(shrink))
+		if err != 0 {
+			return nil, catchVipsError()
+		}
+		return image, nil
+	}
+
 	err := C.vips_shrink_bridge(input, &image, C.double(float64(shrink)), C.double(float64(shrink)))
 	if err != 0 {
 		return nil, catchVipsError()
