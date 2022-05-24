@@ -70,6 +70,14 @@ type vipsSaveOptions struct {
 	KeepCopyrightMetadata bool
 }
 
+// vipsColorspaceOptions represents the internal option used to handle the colorspace with libvips.
+type vipsColorspaceOptions struct {
+	NoProfile      bool
+	InputICC       string // Absolute path to the input ICC profile
+	OutputICC      string // Absolute path to the output ICC profile
+	Interpretation Interpretation
+}
+
 type vipsWatermarkOptions struct {
 	Width       C.int
 	DPI         C.int
@@ -475,7 +483,7 @@ func vipsFlattenBackground(image *C.VipsImage, background RGBAProvider) (*C.Vips
 	return image, nil
 }
 
-func vipsPreSave(image *C.VipsImage, o *vipsSaveOptions) (*C.VipsImage, error) {
+func vipsColorspace(image *C.VipsImage, o *vipsColorspaceOptions) (*C.VipsImage, error) {
 	var outImage *C.VipsImage
 	// Remove ICC profile metadata
 	if o.NoProfile {
@@ -494,6 +502,7 @@ func vipsPreSave(image *C.VipsImage, o *vipsSaveOptions) (*C.VipsImage, error) {
 		if int(err) != 0 {
 			return nil, catchVipsError()
 		}
+		C.g_object_unref(C.gpointer(image))
 		image = outImage
 	}
 
@@ -521,7 +530,7 @@ func vipsPreSave(image *C.VipsImage, o *vipsSaveOptions) (*C.VipsImage, error) {
 			return nil, catchVipsError()
 		}
 		C.g_object_unref(C.gpointer(image))
-		image = outImage
+		return outImage, nil
 	}
 
 	return image, nil
@@ -546,20 +555,6 @@ func keepCopyrightMetadata(image *C.VipsImage) bool {
 func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 	defer C.g_object_unref(C.gpointer(image))
 
-	tmpImage, err := vipsPreSave(image, &o)
-	if err != nil {
-		return nil, err
-	}
-
-	// When an image has an unsupported color space, vipsPreSave
-	// returns the pointer of the image passed to it unmodified.
-	// When this occurs, we must take care to not dereference the
-	// original image a second time; we may otherwise erroneously
-	// free the object twice.
-	if tmpImage != image {
-		defer C.g_object_unref(C.gpointer(tmpImage))
-	}
-
 	length := C.size_t(0)
 	saveErr := C.int(0)
 	interlace := C.int(boolToInt(o.Interlace))
@@ -573,11 +568,11 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 		// Remove orientation field
 		field := C.CString(C.VIPS_META_ORIENTATION)
 		defer C.free(unsafe.Pointer(field))
-		C.vips_image_remove(tmpImage, field)
+		C.vips_image_remove(image, field)
 	}
 
 	if o.StripMetadata && o.KeepCopyrightMetadata {
-		found := keepCopyrightMetadata(tmpImage)
+		found := keepCopyrightMetadata(image)
 		// disable strip on save since metadata is already stripped
 		if found {
 			strip = 0
@@ -590,21 +585,21 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 	var ptr unsafe.Pointer
 	switch o.Type {
 	case WEBP:
-		saveErr = C.vips_webpsave_bridge(tmpImage, &ptr, &length, strip, quality, lossless)
+		saveErr = C.vips_webpsave_bridge(image, &ptr, &length, strip, quality, lossless)
 	case PNG:
-		saveErr = C.vips_pngsave_bridge(tmpImage, &ptr, &length, strip, C.int(o.Compression), quality, interlace, palette, speed)
+		saveErr = C.vips_pngsave_bridge(image, &ptr, &length, strip, C.int(o.Compression), quality, interlace, palette, speed)
 	case TIFF:
-		saveErr = C.vips_tiffsave_bridge(tmpImage, &ptr, &length)
+		saveErr = C.vips_tiffsave_bridge(image, &ptr, &length)
 	case HEIF:
-		saveErr = C.vips_heifsave_bridge(tmpImage, &ptr, &length, strip, quality, lossless)
+		saveErr = C.vips_heifsave_bridge(image, &ptr, &length, strip, quality, lossless)
 	case AVIF:
-		saveErr = C.vips_avifsave_bridge(tmpImage, &ptr, &length, strip, quality, lossless, speed)
+		saveErr = C.vips_avifsave_bridge(image, &ptr, &length, strip, quality, lossless, speed)
 	case GIF:
-		saveErr = C.vips_gifsave_bridge(tmpImage, &ptr, &length, strip)
+		saveErr = C.vips_gifsave_bridge(image, &ptr, &length, strip)
 	case JP2K:
-		saveErr = C.vips_jp2ksave_bridge(tmpImage, &ptr, &length, strip, quality, lossless)
+		saveErr = C.vips_jp2ksave_bridge(image, &ptr, &length, strip, quality, lossless)
 	default:
-		saveErr = C.vips_jpegsave_bridge(tmpImage, &ptr, &length, strip, quality, interlace)
+		saveErr = C.vips_jpegsave_bridge(image, &ptr, &length, strip, quality, interlace)
 	}
 
 	if int(saveErr) != 0 {

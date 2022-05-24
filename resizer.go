@@ -104,6 +104,19 @@ func resizer(buf []byte, o Options) ([]byte, error) {
 		residual = float64(shrink) / factor
 	}
 
+	// convert the image to output colorspace before processing
+	co := vipsColorspaceOptions{
+		NoProfile:      o.NoProfile,
+		InputICC:       o.InputICC,
+		OutputICC:      o.OutputICC,
+		Interpretation: o.Interpretation,
+	}
+
+	image, err = vipsColorspace(image, &co)
+	if err != nil {
+		return nil, err
+	}
+
 	// Zoom image, if necessary
 	image, err = zoomImage(image, o.Zoom)
 	if err != nil {
