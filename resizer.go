@@ -83,8 +83,10 @@ func resizer(buf []byte, o Options) ([]byte, error) {
 			factor = 1.0
 			shrink = 1
 			residual = 0
-			o.Width = inWidth
-			o.Height = inHeight
+			if !o.Embed {
+				o.Width = inWidth
+				o.Height = inHeight
+			}
 		}
 	}
 
