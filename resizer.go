@@ -279,6 +279,15 @@ func transformImage(image *C.VipsImage, o Options, shrink int, residual float64)
 		residualy = float64(o.Height) / float64(image.Ysize)
 	}
 
+	// embed: allow to use AreaWidth and AreaHeight to force a fixed size on
+	// resize when shrink-on-load is performed instead to compute one.
+	// This can be helpful to force image dimensions on resize when embedding
+	// (i.e. letterboxing)
+	if o.Embed && o.AreaWidth > 0 && o.AreaHeight > 0 {
+		residualx = float64(o.AreaWidth) / float64(image.Xsize)
+		residualy = float64(o.AreaHeight) / float64(image.Ysize)
+	}
+
 	if o.Force || residual != 0 {
 		if residualx < 1 && residualy < 1 {
 			image, err = vipsReduce(image, 1/residualx, 1/residualy)
