@@ -401,7 +401,12 @@ func rotateAndFlipImage(image *C.VipsImage, o Options) (*C.VipsImage, bool, erro
 
 	if o.Rotate > 0 {
 		rotated = true
-		image, err = vipsRotate(image, o.Rotate, o.Background)
+		background := o.Background
+		if o.Embed && o.AreaHeight > 0 && o.AreaWidth > 0 {
+			// ensure background color is not applied when letterboxing
+			background = nil
+		}
+		image, err = vipsRotate(image, o.Rotate, background)
 	}
 
 	if o.Flip {
