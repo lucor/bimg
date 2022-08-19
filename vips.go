@@ -1024,32 +1024,53 @@ func stripMetadataXMP(image *C.VipsImage) (bool, error) {
 	}
 	xmpDoc.FilterNamespaces(filteredNs)
 
-	keepCopyrightNodes := func(n *xmp.Node, ns string, copyrightNames []string) {
-		if n.Name() != ns {
-			return
-		}
+	for _, n := range xmpDoc.Nodes() {
+		switch n.Name() {
+		case "dc":
+			copyrightNames := []string{"rights", "contributor", "creator", "publisher"}
 
-		filteredNodes := xmp.NodeList{}
-		for _, nn := range n.Nodes {
-			for _, cn := range copyrightNames {
-				if nn.Name() == cn {
-					if nn.Value != "" {
-						filteredNodes = append(filteredNodes, nn)
+			copyrightNodes := xmp.NodeList{}
+			for _, nn := range n.Nodes {
+				for _, cn := range copyrightNames {
+					if nn.Name() == cn {
+						copyrightNodes = append(copyrightNodes, nn)
+						break
 					}
-					break
 				}
 			}
-		}
-		n.Nodes = filteredNodes
-		if len(n.Nodes) == 0 {
-			xmpDoc.RemoveNamespaceByName(ns)
-		}
-	}
+			n.Nodes = copyrightNodes
+			if len(n.Nodes) == 0 {
+				xmpDoc.RemoveNamespaceByName("dc")
+			}
+		case "photoshop":
+			copyrightNames := []string{"Credit"}
 
-	nodes := xmpDoc.Nodes()
-	for _, n := range nodes {
-		keepCopyrightNodes(n, "dc", []string{"rights", "contributor", "creator", "publisher"})
-		keepCopyrightNodes(n, "photoshop", []string{"Credit"})
+			copyrightAttrs := xmp.AttrList{}
+			for _, nn := range n.Attr {
+				for _, cn := range copyrightNames {
+					attr := "photoshop:" + cn
+					if nn.Name.Local == attr {
+						copyrightAttrs = append(copyrightAttrs, nn)
+						break
+					}
+				}
+			}
+			n.Attr = copyrightAttrs
+
+			copyrightNodes := xmp.NodeList{}
+			for _, nn := range n.Nodes {
+				for _, cn := range copyrightNames {
+					if nn.Name() == cn {
+						copyrightNodes = append(copyrightNodes, nn)
+						break
+					}
+				}
+			}
+			n.Nodes = copyrightNodes
+			if len(n.Attr) == 0 && len(n.Nodes) == 0 {
+				xmpDoc.RemoveNamespaceByName("photoshop")
+			}
+		}
 	}
 
 	if len(xmpDoc.Nodes()) == 0 {
