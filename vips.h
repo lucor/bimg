@@ -444,7 +444,13 @@ vips_heifsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int qual
 
 int
 vips_gifsave_bridge(VipsImage *in, void **buf, size_t *len, int strip) {
-#if (VIPS_MAJOR_VERSION > 8 || (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 12))
+#if (VIPS_MAJOR_VERSION > 8 || (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 14))
+	return vips_gifsave_buffer(in, buf, len, 
+		"strip", INT_TO_GBOOLEAN(strip),
+		"reuse", TRUE,
+		NULL
+	);
+#elif (VIPS_MAJOR_VERSION > 8 || (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 12))
 	return vips_gifsave_buffer(in, buf, len, 
 		"strip", INT_TO_GBOOLEAN(strip),
 		NULL
