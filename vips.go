@@ -227,6 +227,9 @@ func VipsIsTypeSupported(t ImageType) bool {
 	if t == JP2K {
 		return int(C.vips_type_find_bridge(C.JP2K)) != 0
 	}
+	if t == JXL {
+		return int(C.vips_type_find_bridge(C.JXL)) != 0
+	}
 	return false
 }
 
@@ -257,6 +260,9 @@ func VipsIsTypeSupportedSave(t ImageType) bool {
 	}
 	if t == JP2K {
 		return int(C.vips_type_find_save_bridge(C.JP2K)) != 0
+	}
+	if t == JXL {
+		return int(C.vips_type_find_save_bridge(C.JXL)) != 0
 	}
 	return false
 }
@@ -874,7 +880,10 @@ func vipsImageType(buf []byte) ImageType {
 		bytes.HasPrefix(buf, []byte{0xFF, 0x4F, 0xFF, 0x51})) {
 		return JP2K
 	}
-
+	if IsTypeSupported(JXL) && (bytes.HasPrefix(buf, []byte{0xFF, 0x0A}) ||
+		bytes.HasPrefix(buf, []byte{0x00, 0x00, 0x00, 0x0C, 0x4A, 0x58, 0x4C, 0x20, 0x0D, 0x0A, 0x87, 0x0A})) {
+		return JP2K
+	}
 	return UNKNOWN
 }
 
