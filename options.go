@@ -274,8 +274,13 @@ type Options struct {
 	Palette        bool
 	// Speed defines the AVIF encoders CPU effort. Valid values are:
 	// 0-8 for AVIF encoding.
-	// 0-9 for PNG encoding.
 	Speed int
+
+	// Effort is the CPU encoding effort, value range can vary per image type:
+	// - JXL between 3 (fastest) and 9 (slowest) (optional, default 6)
+	// - PNG between 0 (fastest) and 9 (slowest) (optional, default 7)
+	Effort int
+
 	// ReadAllFrames defines if libvips should read all frames.
 	// This option can be used to convert bewteen animated formats.
 	ReadAllFrames bool

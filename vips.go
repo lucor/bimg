@@ -62,6 +62,9 @@ type vipsSaveOptions struct {
 	Interpretation Interpretation
 	Palette        bool
 
+	// Effort is the CPU encoding effort
+	Effort int
+
 	// StripEXIFOrientation if true will always strip the EXIF Orientation tag
 	StripEXIFOrientation bool
 
@@ -569,6 +572,7 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 	lossless := C.int(boolToInt(o.Lossless))
 	palette := C.int(boolToInt(o.Palette))
 	speed := C.int(o.Speed)
+	effort := C.int(o.Effort)
 
 	if o.StripEXIFOrientation {
 		// Remove orientation field
@@ -593,7 +597,7 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 	case WEBP:
 		saveErr = C.vips_webpsave_bridge(image, &ptr, &length, strip, quality, lossless)
 	case PNG:
-		saveErr = C.vips_pngsave_bridge(image, &ptr, &length, strip, C.int(o.Compression), quality, interlace, palette, speed)
+		saveErr = C.vips_pngsave_bridge(image, &ptr, &length, strip, C.int(o.Compression), quality, interlace, palette, effort)
 	case TIFF:
 		saveErr = C.vips_tiffsave_bridge(image, &ptr, &length)
 	case HEIF:
@@ -604,6 +608,8 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 		saveErr = C.vips_gifsave_bridge(image, &ptr, &length, strip)
 	case JP2K:
 		saveErr = C.vips_jp2ksave_bridge(image, &ptr, &length, strip, quality, lossless)
+	case JXL:
+		saveErr = C.vips_jxlsave_bridge(image, &ptr, &length, strip, quality, lossless, effort)
 	default:
 		saveErr = C.vips_jpegsave_bridge(image, &ptr, &length, strip, quality, interlace)
 	}

@@ -219,10 +219,16 @@ func applyDefaults(o Options, imageType ImageType) Options {
 	if o.Interpretation == 0 {
 		o.Interpretation = InterpretationSRGB
 	}
-	if o.Palette {
-		// Default value of effort in libvips is 7.
-		o.Speed = 3
+
+	if o.Effort == 0 {
+		switch o.Type {
+		case PNG:
+			o.Effort = 7
+		case JXL:
+			o.Effort = 6
+		}
 	}
+
 	return o
 }
 
@@ -242,6 +248,7 @@ func saveImage(image *C.VipsImage, o Options) ([]byte, error) {
 		Speed:                 o.Speed,
 		KeepCopyrightMetadata: o.KeepCopyrightMetadata,
 		StripEXIFOrientation:  o.StripEXIFOrientation,
+		Effort:                o.Effort,
 	}
 	// Finally get the resultant buffer
 	return vipsSave(image, saveOptions)

@@ -373,9 +373,8 @@ vips_jpegsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int qual
 }
 
 int
-vips_pngsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int compression, int quality, int interlace, int palette, int speed) {
+vips_pngsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int compression, int quality, int interlace, int palette, int effort) {
 #if (VIPS_MAJOR_VERSION >= 8 && VIPS_MINOR_VERSION >= 7)
-	int effort = 10 - speed;
 	return vips_pngsave_buffer(in, buf, len,
 		"strip", INT_TO_GBOOLEAN(strip),
 		"compression", compression,
@@ -480,12 +479,13 @@ vips_jp2ksave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int qual
 }
 
 int
-vips_jxlsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int quality, int lossless) {
+vips_jxlsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int quality, int lossless, int effort) {
 #if (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 12)
 	return vips_jxlsave_buffer(in, buf, len,
 		"strip", INT_TO_GBOOLEAN(strip),
 		"Q", quality,
 		"lossless", INT_TO_GBOOLEAN(lossless),
+		"effort", effort,
 		NULL
 	);
 #else
