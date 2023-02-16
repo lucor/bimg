@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <vips/vips.h>
 #include <vips/foreign.h>
@@ -802,4 +803,51 @@ keep_exif_copyright(VipsImage *image) {
 	g_strfreev(fields);
 
 	return found;
+}
+
+int
+vips_get_pixels(VipsImage *image, void *buf, size_t len) {
+	int x;
+	int y;
+	int i;
+	uint8_t pix[len];
+	
+	image->Type = VIPS_INTERPRETATION_sRGB;
+
+	int hasAlpha = has_alpha_channel(image);
+
+	int n;
+	n = 3;
+	if (hasAlpha == 1) {
+		n = 4;
+	}
+
+	for( x = 0; x < image->Xsize; x++ ) {
+		for( y = 0; y < image->Ysize; y++ ) {		
+			double *vector;
+			int n;
+
+			if( vips_getpoint( image, &vector, &n, x, y, NULL ) ) {
+				vips_error_exit( NULL );
+			}
+
+			pix[i] = vector[0];
+			pix[i+1] = vector[1];
+			pix[i+2] = vector[2];
+			pix[i+3] = 0;
+			if (hasAlpha == 1) {
+				pix[i+3] = vector[3];
+			}
+			i = i+4;
+			g_free( vector );
+		}
+	}
+
+	memcpy(buf, (void*)pix, len); 
+	return 0;
+}
+
+int
+vips_get_point(VipsImage *image, double **out, int n, int x, int y) {
+	return vips_getpoint( image, out, &n, x, y, NULL );
 }
