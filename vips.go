@@ -1168,9 +1168,8 @@ func stripMetadataIPTC(image *C.VipsImage) (bool, error) {
 }
 
 // RGBAPixels returns a slice of RGBA pixels along with image width and height
-func GetPoints(buf []byte) ([]uint8, int, int, error) {
+func RGBAPixels(buf []byte) ([]uint8, int, int, error) {
 	defer C.vips_thread_shutdown()
-
 	image, _, err := vipsReadAll(buf)
 	if err != nil {
 		return nil, 0, 0, err
@@ -1180,69 +1179,15 @@ func GetPoints(buf []byte) ([]uint8, int, int, error) {
 	w := int(image.Xsize)
 	h := int(image.Ysize)
 
-	n := 3
-	if vipsHasAlpha(image) {
-		n = 4
-	}
+	length := w * h * 4
 
-	// To align with Go image.RGBA, pix holds the image's pixels, in R, G, B, A order. The pixel at
-	// (x, y) starts at Pix[y*stride + x*4].
-	// Where stride is the pix stride (in bytes) between vertically adjacent pixels (width * 4 for RGBA images)
-	pix := make([]uint8, 0, w*h*4)
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
-			v, err := getPoint(image, n, x, y)
-			if err != nil {
-				return nil, 0, 0, err
-			}
-			pix = append(pix, v...)
-		}
-	}
-
-	return pix, w, h, nil
-}
-
-// RGBAPixels returns a slice of RGBA pixels along with image width and height
-func GetPoint(buf []byte, x int, y int) ([]uint8, int, int, error) {
-	defer C.vips_thread_shutdown()
-
-	image, _, err := vipsReadAll(buf)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	defer C.g_object_unref(C.gpointer(image))
-
-	w := int(image.Xsize)
-	h := int(image.Ysize)
-
-	if x > w || y > h {
-		return nil, 0, 0, fmt.Errorf("point is out of range: image dimensions %dx%d - point coordinates %dx%d", x, y, w, h)
-	}
-
-	n := 3
-	if vipsHasAlpha(image) {
-		n = 4
-	}
-
-	pix, err := getPoint(image, n, x, y)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	return pix, w, h, nil
-}
-
-func getPoint(image *C.VipsImage, n int, x int, y int) ([]uint8, error) {
-	var out *C.double
+	var out *C.uint8_t
 	defer C.free(unsafe.Pointer(out))
 
-	err := C.vips_get_point(image, &out, C.int(n), C.int(x), C.int(y))
-	if err != 0 {
-		return nil, catchVipsError()
+	errC := C.vips_get_rgba_pixels(image, &out)
+	if errC != 0 {
+		return nil, 0, 0, catchVipsError()
 	}
-	o := (*[4]float64)(unsafe.Pointer(out))[:n:n]
-	v := []uint8{uint8(o[0]), uint8(o[1]), uint8(o[2]), 255}
-	if n == 4 {
-		v[3] = uint8(o[3])
-	}
-	return v, nil
+	pixels := (*[1 << 28]uint8)(unsafe.Pointer(out))[:length:length]
+	return pixels, w, h, nil
 }
