@@ -888,7 +888,7 @@ func vipsImageType(buf []byte) ImageType {
 	}
 	if IsTypeSupported(JXL) && (bytes.HasPrefix(buf, []byte{0xFF, 0x0A}) ||
 		bytes.HasPrefix(buf, []byte{0x00, 0x00, 0x00, 0x0C, 0x4A, 0x58, 0x4C, 0x20, 0x0D, 0x0A, 0x87, 0x0A})) {
-		return JP2K
+		return JXL
 	}
 	return UNKNOWN
 }
