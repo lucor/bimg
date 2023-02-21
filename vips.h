@@ -1,5 +1,7 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include <vips/vips.h>
 #include <vips/foreign.h>
 #include <vips/vips7compat.h>
@@ -803,3 +805,49 @@ keep_exif_copyright(VipsImage *image) {
 
 	return found;
 }
+
+int
+vips_get_rgba_pixels_generate(VipsRegion *out, void *seq, void *a, void *b, gboolean *stop) {
+	VipsImage *img = (VipsImage *) a;
+	VipsRegion *reg = (VipsRegion *) seq;
+	VipsRect *rec = &out->valid;
+	uint8_t *pixels = b;
+
+	if (vips_region_prepare( reg, rec )){
+		vips_error_exit( NULL );
+	}
+
+	// To align with Go image.RGBA, pixels holds the image's pixels, in R, G, B, A order. 
+	// The pixel at (left, top) starts at pixels[top*stride + left*4].
+	// Where stride is the pixels stride (in bytes) between vertically adjacent pixels (width * 4 for RGBA images)
+	VipsPel *p = VIPS_REGION_ADDR(reg, rec->left, rec->top);
+
+	int stride = img->Xsize * 4;
+	int offset = rec->top * stride + rec->left * 4;
+	int bands = reg->im->Bands;
+	
+	pixels[offset] = p[0]; //R
+	pixels[offset+1] = p[1]; //G
+	pixels[offset+2] = p[2]; //B
+	pixels[offset+3] = 255; //A
+	if (bands == 4) {
+		pixels[offset+3] = p[3];
+	}
+	return 0;
+}
+
+int
+vips_get_rgba_pixels(VipsImage *image, uint8_t **pixels) {
+	int pixels_size = image->Xsize * image->Ysize * 4;
+	*pixels = VIPS_ARRAY( NULL, pixels_size, uint8_t );
+	vips_sink_tile(image,
+		1,
+		1,
+        vips_start_one,
+        vips_get_rgba_pixels_generate,
+        vips_stop_one,
+        image,
+        *pixels);
+	return 0;
+}
+
