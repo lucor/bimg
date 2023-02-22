@@ -62,6 +62,9 @@ type vipsSaveOptions struct {
 	Interpretation Interpretation
 	Palette        bool
 
+	// Effort is the CPU encoding effort
+	Effort int
+
 	// StripEXIFOrientation if true will always strip the EXIF Orientation tag
 	StripEXIFOrientation bool
 
@@ -227,6 +230,9 @@ func VipsIsTypeSupported(t ImageType) bool {
 	if t == JP2K {
 		return int(C.vips_type_find_bridge(C.JP2K)) != 0
 	}
+	if t == JXL {
+		return int(C.vips_type_find_bridge(C.JXL)) != 0
+	}
 	return false
 }
 
@@ -257,6 +263,9 @@ func VipsIsTypeSupportedSave(t ImageType) bool {
 	}
 	if t == JP2K {
 		return int(C.vips_type_find_save_bridge(C.JP2K)) != 0
+	}
+	if t == JXL {
+		return int(C.vips_type_find_save_bridge(C.JXL)) != 0
 	}
 	return false
 }
@@ -563,6 +572,7 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 	lossless := C.int(boolToInt(o.Lossless))
 	palette := C.int(boolToInt(o.Palette))
 	speed := C.int(o.Speed)
+	effort := C.int(o.Effort)
 
 	if o.StripEXIFOrientation {
 		// Remove orientation field
@@ -587,7 +597,7 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 	case WEBP:
 		saveErr = C.vips_webpsave_bridge(image, &ptr, &length, strip, quality, lossless)
 	case PNG:
-		saveErr = C.vips_pngsave_bridge(image, &ptr, &length, strip, C.int(o.Compression), quality, interlace, palette, speed)
+		saveErr = C.vips_pngsave_bridge(image, &ptr, &length, strip, C.int(o.Compression), quality, interlace, palette, effort)
 	case TIFF:
 		saveErr = C.vips_tiffsave_bridge(image, &ptr, &length)
 	case HEIF:
@@ -598,6 +608,8 @@ func vipsSave(image *C.VipsImage, o vipsSaveOptions) ([]byte, error) {
 		saveErr = C.vips_gifsave_bridge(image, &ptr, &length, strip)
 	case JP2K:
 		saveErr = C.vips_jp2ksave_bridge(image, &ptr, &length, strip, quality, lossless)
+	case JXL:
+		saveErr = C.vips_jxlsave_bridge(image, &ptr, &length, strip, quality, lossless, effort)
 	default:
 		saveErr = C.vips_jpegsave_bridge(image, &ptr, &length, strip, quality, interlace)
 	}
@@ -874,7 +886,10 @@ func vipsImageType(buf []byte) ImageType {
 		bytes.HasPrefix(buf, []byte{0xFF, 0x4F, 0xFF, 0x51})) {
 		return JP2K
 	}
-
+	if IsTypeSupported(JXL) && (bytes.HasPrefix(buf, []byte{0xFF, 0x0A}) ||
+		bytes.HasPrefix(buf, []byte{0x00, 0x00, 0x00, 0x0C, 0x4A, 0x58, 0x4C, 0x20, 0x0D, 0x0A, 0x87, 0x0A})) {
+		return JXL
+	}
 	return UNKNOWN
 }
 
@@ -1150,4 +1165,29 @@ func stripMetadataIPTC(image *C.VipsImage) (bool, error) {
 
 	vipsSetMetadataRaw(image, C.VIPS_META_IPTC_NAME, data)
 	return true, nil
+}
+
+// RGBAPixels returns a slice of RGBA pixels along with image width and height
+func RGBAPixels(buf []byte) ([]uint8, int, int, error) {
+	defer C.vips_thread_shutdown()
+	image, _, err := vipsReadAll(buf)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer C.g_object_unref(C.gpointer(image))
+
+	w := int(image.Xsize)
+	h := int(image.Ysize)
+
+	length := w * h * 4
+
+	var out *C.uint8_t
+	defer C.free(unsafe.Pointer(out))
+
+	errC := C.vips_get_rgba_pixels(image, &out)
+	if errC != 0 {
+		return nil, 0, 0, catchVipsError()
+	}
+	pixels := (*[1 << 28]uint8)(unsafe.Pointer(out))[:length:length]
+	return pixels, w, h, nil
 }

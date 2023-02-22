@@ -1,5 +1,7 @@
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include <vips/vips.h>
 #include <vips/foreign.h>
 #include <vips/vips7compat.h>
@@ -36,7 +38,8 @@ enum types {
 	MAGICK,
 	HEIF,
 	AVIF,
-	JP2K
+	JP2K,
+	JXL
 };
 
 typedef struct {
@@ -180,6 +183,11 @@ vips_type_find_bridge(int t) {
 		return vips_type_find("VipsOperation", "jp2kload");
 	}
 #endif
+#if (VIPS_MAJOR_VERSION > 8 || (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 12))
+	if (t == JXL) {
+		return vips_type_find("VipsOperation", "jxlload");
+	}
+#endif
 	return 0;
 }
 
@@ -210,6 +218,11 @@ vips_type_find_save_bridge(int t) {
 #if (VIPS_MAJOR_VERSION > 8 || (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 11))
 	if (t == JP2K) {
 		return vips_type_find("VipsOperation", "jp2ksave_buffer");
+	}
+#endif
+#if (VIPS_MAJOR_VERSION > 8 || (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 12))
+	if (t == JXL) {
+		return vips_type_find("VipsOperation", "jxlsave_buffer");
 	}
 #endif
 	return 0;
@@ -362,9 +375,8 @@ vips_jpegsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int qual
 }
 
 int
-vips_pngsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int compression, int quality, int interlace, int palette, int speed) {
+vips_pngsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int compression, int quality, int interlace, int palette, int effort) {
 #if (VIPS_MAJOR_VERSION >= 8 && VIPS_MINOR_VERSION >= 7)
-	int effort = 10 - speed;
 	return vips_pngsave_buffer(in, buf, len,
 		"strip", INT_TO_GBOOLEAN(strip),
 		"compression", compression,
@@ -469,6 +481,21 @@ vips_jp2ksave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int qual
 }
 
 int
+vips_jxlsave_bridge(VipsImage *in, void **buf, size_t *len, int strip, int quality, int lossless, int effort) {
+#if (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 12)
+	return vips_jxlsave_buffer(in, buf, len,
+		"strip", INT_TO_GBOOLEAN(strip),
+		"Q", quality,
+		"lossless", INT_TO_GBOOLEAN(lossless),
+		"effort", effort,
+		NULL
+	);
+#else
+	return 0;
+#endif
+}
+
+int
 vips_is_16bit (VipsInterpretation interpretation) {
 	return interpretation == VIPS_INTERPRETATION_RGB16 || interpretation == VIPS_INTERPRETATION_GREY16;
 }
@@ -526,6 +553,10 @@ vips_init_image (void *buf, size_t len, int imageType, int frames, VipsImage **o
 #if (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 11)
 	} else if (imageType == JP2K) {
 		code = vips_jp2kload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+#endif
+#if (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 12)
+	} else if (imageType == JXL) {
+		code = vips_jxlload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
 #endif
 	}
 
@@ -774,3 +805,49 @@ keep_exif_copyright(VipsImage *image) {
 
 	return found;
 }
+
+int
+vips_get_rgba_pixels_generate(VipsRegion *out, void *seq, void *a, void *b, gboolean *stop) {
+	VipsImage *img = (VipsImage *) a;
+	VipsRegion *reg = (VipsRegion *) seq;
+	VipsRect *rec = &out->valid;
+	uint8_t *pixels = b;
+
+	if (vips_region_prepare( reg, rec )){
+		vips_error_exit( NULL );
+	}
+
+	// To align with Go image.RGBA, pixels holds the image's pixels, in R, G, B, A order. 
+	// The pixel at (left, top) starts at pixels[top*stride + left*4].
+	// Where stride is the pixels stride (in bytes) between vertically adjacent pixels (width * 4 for RGBA images)
+	VipsPel *p = VIPS_REGION_ADDR(reg, rec->left, rec->top);
+
+	int stride = img->Xsize * 4;
+	int offset = rec->top * stride + rec->left * 4;
+	int bands = reg->im->Bands;
+	
+	pixels[offset] = p[0]; //R
+	pixels[offset+1] = p[1]; //G
+	pixels[offset+2] = p[2]; //B
+	pixels[offset+3] = 255; //A
+	if (bands == 4) {
+		pixels[offset+3] = p[3];
+	}
+	return 0;
+}
+
+int
+vips_get_rgba_pixels(VipsImage *image, uint8_t **pixels) {
+	int pixels_size = image->Xsize * image->Ysize * 4;
+	*pixels = VIPS_ARRAY( NULL, pixels_size, uint8_t );
+	vips_sink_tile(image,
+		1,
+		1,
+        vips_start_one,
+        vips_get_rgba_pixels_generate,
+        vips_stop_one,
+        image,
+        *pixels);
+	return 0;
+}
+
