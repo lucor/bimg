@@ -1,10 +1,13 @@
 package bimg
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestVipsRead(t *testing.T) {
@@ -251,4 +254,32 @@ func readImage(file string) []byte {
 	buf, _ := ioutil.ReadAll(img)
 	defer img.Close()
 	return buf
+}
+
+// testing func RGBAPixels(buf []byte) ([]uint8, int, int, error) {
+func TestRGBAPixels(t *testing.T) {
+
+	// ./testdata/northern_cardinal_bird.jpg JPEG 1920x1080 1920x1080+0+0 8-bit sRGB 828936B 0.000u 0:00.000
+	imagefile, err := os.ReadFile("testdata/northern_cardinal_bird.jpg")
+	require.NoError(t, err)
+
+	originRGBAPix, width, height, err := RGBAPixels(imagefile)
+
+	if err != nil {
+		t.Fatalf("could not get RGBAPixels for origin: %v", err)
+	}
+
+	if width != 1920 {
+		t.Fatalf("wrong width %d\n", width)
+	}
+
+	if height != 1080 {
+		t.Fatalf("wrong height %d\n", height)
+	}
+
+	if height*width*4 != len(originRGBAPix) {
+		t.Fatalf("wrong slice len %d\n", len(originRGBAPix))
+	}
+
+	fmt.Printf("TestRGBAPixels returned %d len rgba byte slice, width %d, height %d\n", len(originRGBAPix), width, height)
 }
