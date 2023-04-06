@@ -283,3 +283,12 @@ func TestRGBAPixels(t *testing.T) {
 
 	fmt.Printf("TestRGBAPixels returned %d len rgba byte slice, width %d, height %d\n", len(originRGBAPix), width, height)
 }
+
+func Benchmark_RGBAPixels(b *testing.B) {
+	imagefile, _ := os.ReadFile("testdata/northern_cardinal_bird.jpg")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		RGBAPixels(imagefile)
+	}
+	b.StopTimer()
+}
