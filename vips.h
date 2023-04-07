@@ -862,8 +862,8 @@ int vips_get_rgba_pixels_generate_new(VipsRegion *out, void *seq, void *a, void 
 		vips_error_exit( NULL );
 	}
 
-	fprintf(stderr, "vips_get_rgba_pixels_generate_new() - vipsregion width %d, vipsregion height %d\n", 
-		vips_region_width(reg), vips_region_height(reg));
+	// fprintf(stderr, "vips_get_rgba_pixels_generate_new() - vipsregion width %d, vipsregion height %d\n", 
+	// 	vips_region_width(reg), vips_region_height(reg));
 
 	// To align with Go image.RGBA, pixels holds the image's pixels, in R, G, B, A order. 
 	// The pixel at (left, top) starts at pixels[top*stride + left*4].
@@ -873,14 +873,14 @@ int vips_get_rgba_pixels_generate_new(VipsRegion *out, void *seq, void *a, void 
 	int stride = img->Xsize * 4;
 	int offset = rec->top * stride + rec->left * 4;
 	int bands = reg->im->Bands;
-	fprintf(stderr, "stride %d, img->Xsize %d, rec->top %d, rec->left %d, offset %d, bands %d\n", 
-		stride, img->Xsize, rec->top, rec->left, offset, bands);
+	// fprintf(stderr, "stride %d, img->Xsize %d, rec->top %d, rec->left %d, offset %d, bands %d\n", 
+	// 	stride, img->Xsize, rec->top, rec->left, offset, bands);
 	
 	int w = vips_region_width(reg);
 	int h = vips_region_height(reg);
 
 	for (int i,o = 0; i<(w*h*bands); i++ ) {
-		fprintf(stderr, "filing pixels at offset %d + %d, taking pixels at %d\n", offset, o, i);
+		// fprintf(stderr, "filing pixels at offset %d + %d, taking pixels at %d\n", offset, o, i);
 
 		pixels[offset+o] = p[i];
 
@@ -889,7 +889,7 @@ int vips_get_rgba_pixels_generate_new(VipsRegion *out, void *seq, void *a, void 
 			if (bands != 4) {
 				pixels[offset+o] = 255;
 				o++; // if band == 3 we need to add the A byte
-				fprintf(stderr, "filing ALPHA pixel at offset %d + %d, taking pixels at %d\n", offset, o, i);
+				// fprintf(stderr, "filing ALPHA pixel at offset %d + %d, taking pixels at %d\n", offset, o, i);
 				pixels[offset+o] = p[i];
 			}
 		}
@@ -911,7 +911,7 @@ int vips_get_rgba_pixels_new(VipsImage *image, uint8_t **pixels) {
 	int pixels_size = image->Xsize * image->Ysize * 4;
 	*pixels = VIPS_ARRAY( NULL, pixels_size, uint8_t );
 	vips_sink_tile(image,
-		3,
+		2560,
 		1,
         vips_start_one,
         vips_get_rgba_pixels_generate_new,
