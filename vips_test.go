@@ -257,13 +257,53 @@ func readImage(file string) []byte {
 }
 
 // testing func RGBAPixels(buf []byte) ([]uint8, int, int, error) {
-func TestRGBAPixels(t *testing.T) {
+func Test_RGBAPixelsFormat(t *testing.T) {
 
-	// ./testdata/northern_cardinal_bird.jpg JPEG 1920x1080 1920x1080+0+0 8-bit sRGB 828936B 0.000u 0:00.000
+	// testdata/3x3greys.jpg JPEG 3x3 3x3+0+0 8-bit sRGB 1296B
+	imagefile, err := os.ReadFile("testdata/3x3greys.jpg")
+	require.NoError(t, err)
+
+	pix, width, height, err := RGBAPixels(imagefile)
+
+	if err != nil {
+		t.Fatalf("could not get RGBAPixels for origin: %v", err)
+	}
+
+	if width != 3 {
+		t.Fatalf("wrong width %d\n", width)
+	}
+
+	if height != 3 {
+		t.Fatalf("wrong height %d\n", height)
+	}
+
+	if height*width*4 != len(pix) {
+		t.Fatalf("wrong slice len %d\n", len(pix))
+	}
+
+	fmt.Printf("TestRGBAPixels returned %d len rgba byte slice, width %d, height %d\n", len(pix), width, height)
+	fmt.Printf("Image bytes: \n")
+	printfImageAsRGBA(pix, width)
+}
+
+// printfImageAsRGBA : print images bytes in hex
+func printfImageAsRGBA(img []uint8, w int) {
+	for i := 0; i < len(img); i += 4 {
+		if ((i)%(w*4)) == 0 && i != 0 {
+			fmt.Printf("\n")
+		}
+		fmt.Printf("%2x %2x %2x (%2x) | ", img[i], img[i+1], img[i+2], img[i+3])
+	}
+	fmt.Printf("\n")
+}
+
+func Test_RGBAPixels(t *testing.T) {
+
+	// ./testdata/northern_cardinal_bird.jpg JPEG 1920x1080 1920x1080+0+0 8-bit sRGB 828936B
 	imagefile, err := os.ReadFile("testdata/northern_cardinal_bird.jpg")
 	require.NoError(t, err)
 
-	originRGBAPix, width, height, err := RGBAPixels(imagefile)
+	pix, width, height, err := RGBAPixels(imagefile)
 
 	if err != nil {
 		t.Fatalf("could not get RGBAPixels for origin: %v", err)
@@ -277,11 +317,11 @@ func TestRGBAPixels(t *testing.T) {
 		t.Fatalf("wrong height %d\n", height)
 	}
 
-	if height*width*4 != len(originRGBAPix) {
-		t.Fatalf("wrong slice len %d\n", len(originRGBAPix))
+	if height*width*4 != len(pix) {
+		t.Fatalf("wrong slice len %d\n", len(pix))
 	}
 
-	fmt.Printf("TestRGBAPixels returned %d len rgba byte slice, width %d, height %d\n", len(originRGBAPix), width, height)
+	fmt.Printf("TestRGBAPixels returned %d len rgba byte slice, width %d, height %d\n", len(pix), width, height)
 }
 
 func Benchmark_RGBAPixels(b *testing.B) {
@@ -289,6 +329,45 @@ func Benchmark_RGBAPixels(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		RGBAPixels(imagefile)
+	}
+	b.StopTimer()
+}
+
+// New versions of tests that use RGBAPixelsNew
+func Test_RGBAPixelsNewFormat(t *testing.T) {
+
+	// testdata/3x3greys.jpg JPEG 3x3 3x3+0+0 8-bit sRGB 1296B
+	imagefile, err := os.ReadFile("testdata/3x3greys.jpg")
+	require.NoError(t, err)
+
+	pix, width, height, err := RGBAPixelsNew(imagefile)
+
+	if err != nil {
+		t.Fatalf("could not get RGBAPixels for origin: %v", err)
+	}
+
+	if width != 3 {
+		t.Fatalf("wrong width %d\n", width)
+	}
+
+	if height != 3 {
+		t.Fatalf("wrong height %d\n", height)
+	}
+
+	if height*width*4 != len(pix) {
+		t.Fatalf("wrong slice len %d\n", len(pix))
+	}
+
+	fmt.Printf("TestRGBAPixels returned %d len rgba byte slice, width %d, height %d\n", len(pix), width, height)
+	fmt.Printf("Image bytes: \n")
+	printfImageAsRGBA(pix, width)
+}
+
+func Benchmark_RGBAPixelsNew(b *testing.B) {
+	imagefile, _ := os.ReadFile("testdata/northern_cardinal_bird.jpg")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		RGBAPixelsNew(imagefile)
 	}
 	b.StopTimer()
 }

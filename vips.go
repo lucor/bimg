@@ -1191,3 +1191,28 @@ func RGBAPixels(buf []byte) ([]uint8, int, int, error) {
 	pixels := (*[1 << 28]uint8)(unsafe.Pointer(out))[:length:length]
 	return pixels, w, h, nil
 }
+
+// RGBAPixels returns a slice of RGBA pixels along with image width and height
+func RGBAPixelsNew(buf []byte) ([]uint8, int, int, error) {
+	defer C.vips_thread_shutdown()
+	image, _, err := vipsReadAll(buf)
+	if err != nil {
+		return nil, 0, 0, err
+	}
+	defer C.g_object_unref(C.gpointer(image))
+
+	w := int(image.Xsize)
+	h := int(image.Ysize)
+
+	length := w * h * 4
+
+	var out *C.uint8_t
+	defer C.free(unsafe.Pointer(out))
+
+	errC := C.vips_get_rgba_pixels_new(image, &out)
+	if errC != 0 {
+		return nil, 0, 0, catchVipsError()
+	}
+	pixels := (*[1 << 28]uint8)(unsafe.Pointer(out))[:length:length]
+	return pixels, w, h, nil
+}
