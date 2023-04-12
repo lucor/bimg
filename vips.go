@@ -1216,3 +1216,4 @@ func RGBAPixelsNew(buf []byte) ([]uint8, int, int, error) {
 	pixels := (*[1 << 28]uint8)(unsafe.Pointer(out))[:length:length]
 	return pixels, w, h, nil
 }
+
