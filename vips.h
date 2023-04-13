@@ -871,30 +871,51 @@ int vips_get_rgba_pixels_generate_new(VipsRegion *out, void *seq, void *a, void 
 	VipsPel *p = VIPS_REGION_ADDR(reg, rec->left, rec->top);
 
 	int stride = img->Xsize * 4;
-	int offset = rec->top * stride + rec->left * 4;
 	int bands = reg->im->Bands;
+	
+	// int offset = (rec->top) * stride + (rec->left) * 4;
 	// fprintf(stderr, "stride %d, img->Xsize %d, rec->top %d, rec->left %d, offset %d, bands %d\n", 
 	// 	stride, img->Xsize, rec->top, rec->left, offset, bands);
 	
 	int w = vips_region_width(reg);
 	int h = vips_region_height(reg);
 
-	for (int i,o = 0; i<(w*h*bands); i++ ) {
-		// fprintf(stderr, "filing pixels at offset %d + %d, taking pixels at %d\n", offset, o, i);
+	// fprintf(stderr, "region size %d x %d\n", w, h);
 
-		pixels[offset+o] = p[i];
-
-		if ((i%3) == 0 && (i != 0)) {
-			// alpha channel byte
-			if (bands != 4) {
-				pixels[offset+o] = 255;
-				o++; // if band == 3 we need to add the A byte
-				// fprintf(stderr, "filing ALPHA pixel at offset %d + %d, taking pixels at %d\n", offset, o, i);
-				pixels[offset+o] = p[i];
+	int region_offset = 0;
+	for (int x = 0; x < w; x++) {
+		for (int y = 0; y < h; y++) {
+			int offset = (rec->top+y) * stride + (rec->left+x) * 4;
+			pixels[offset] = p[region_offset]; //R
+			pixels[offset+1] = p[region_offset+1]; //G
+			pixels[offset+2] = p[region_offset+2]; //B
+			pixels[offset+3] = 255; //A
+			region_offset = region_offset+3;
+			//TODO handle images with 1 band
+			if (bands == 4) {
+				pixels[offset+3] = p[region_offset+3];
+				region_offset++;
 			}
-		}
-		o++;
+			// fprintf(stderr, "pixel values at %dx%d (R,G,B,A: %d,%d,%d,%d)\n", x, y, p[region_offset], p[region_offset+1], p[region_offset+2], pixels[offset+3]);
+		}	
 	}
+
+	// for (int i,o = 0; i<(w*h*bands); i++ ) {
+	// 	 fprintf(stderr, "filing pixels at offset %d + %d, taking pixels at %d\n", offset, o, i);
+
+	// 	pixels[offset+o] = p[i];
+
+	// 	if ((i%3) == 0 && (i != 0)) {
+	// 		// alpha channel byte
+	// 		if (bands != 4) {
+	// 			pixels[offset+o] = 255;
+	// 			o++; // if band == 3 we need to add the A byte
+	// 			fprintf(stderr, "filing ALPHA pixel at offset %d + %d, taking pixels at %d\n", offset, o, i);
+	// 			pixels[offset+o] = p[i];
+	// 		}
+	// 	}
+	// 	o++;
+	// }
 
 		// pixels[offset] = p[0]; //R
 		// pixels[offset+1] = p[1]; //G
@@ -911,8 +932,8 @@ int vips_get_rgba_pixels_new(VipsImage *image, uint8_t **pixels) {
 	int pixels_size = image->Xsize * image->Ysize * 4;
 	*pixels = VIPS_ARRAY( NULL, pixels_size, uint8_t );
 	vips_sink_tile(image,
-		2560,
-		1,
+		64,
+		64,
         vips_start_one,
         vips_get_rgba_pixels_generate_new,
         vips_stop_one,

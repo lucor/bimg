@@ -283,7 +283,21 @@ func Test_RGBAPixelsFormat(t *testing.T) {
 
 	fmt.Printf("TestRGBAPixels returned %d len rgba byte slice, width %d, height %d\n", len(pix), width, height)
 	fmt.Printf("Image bytes: \n")
+
+	want := []uint8{
+		255, 255, 255, 255, //ffffff
+		210, 210, 210, 255, //d2d2d2
+		196, 196, 196, 255, //c4c4c4
+		188, 188, 188, 255, //bcbcbc
+		149, 149, 149, 255, //959595
+		81, 81, 81, 255, //515151
+		0, 0, 0, 255, //000000
+		7, 7, 7, 255, //070707
+		9, 9, 9, 255, //090909
+	}
+
 	printfImageAsRGBA(pix, width)
+	require.Equal(t, want, pix)
 }
 
 // printfImageAsRGBA : print images bytes in hex
@@ -361,6 +375,19 @@ func Test_RGBAPixelsNewFormat(t *testing.T) {
 	fmt.Printf("TestRGBAPixels returned %d len rgba byte slice, width %d, height %d\n", len(pix), width, height)
 	fmt.Printf("Image bytes: \n")
 	printfImageAsRGBA(pix, width)
+
+	want := []uint8{
+		255, 255, 255, 255, //ffffff
+		210, 210, 210, 255, //d2d2d2
+		196, 196, 196, 255, //c4c4c4
+		188, 188, 188, 255, //bcbcbc
+		149, 149, 149, 255, //959595
+		81, 81, 81, 255, //515151
+		0, 0, 0, 255, //000000
+		7, 7, 7, 255, //070707
+		9, 9, 9, 255, //090909
+	}
+	require.Equal(t, want, pix)
 }
 
 func Benchmark_RGBAPixelsNew(b *testing.B) {
@@ -370,4 +397,47 @@ func Benchmark_RGBAPixelsNew(b *testing.B) {
 		RGBAPixelsNew(imagefile)
 	}
 	b.StopTimer()
+}
+
+// New versions of tests that use RGBAPixelsNew
+func Test_RGBAPixelsNewFormatBands(t *testing.T) {
+
+	// testdata/3x3greys.jpg JPEG 3x3 3x3+0+0 8-bit sRGB 1296B
+	imagefile, err := os.ReadFile("testdata/3x3.jpg")
+	require.NoError(t, err)
+
+	pix, width, height, err := RGBAPixelsNew(imagefile)
+
+	if err != nil {
+		t.Fatalf("could not get RGBAPixels for origin: %v", err)
+	}
+
+	if width != 3 {
+		t.Fatalf("wrong width %d\n", width)
+	}
+
+	if height != 3 {
+		t.Fatalf("wrong height %d\n", height)
+	}
+
+	if height*width*4 != len(pix) {
+		t.Fatalf("wrong slice len %d\n", len(pix))
+	}
+
+	fmt.Printf("TestRGBAPixels returned %d len rgba byte slice, width %d, height %d\n", len(pix), width, height)
+	fmt.Printf("Image bytes: \n")
+	printfImageAsRGBA(pix, width)
+
+	want := []uint8{
+		255, 255, 255, 255, //ffffff
+		210, 210, 210, 255, //d2d2d2
+		196, 196, 196, 255, //c4c4c4
+		188, 188, 188, 255, //bcbcbc
+		149, 149, 149, 255, //959595
+		81, 81, 81, 255, //515151
+		0, 0, 0, 255, //000000
+		7, 7, 7, 255, //070707
+		9, 9, 9, 255, //090909
+	}
+	require.Equal(t, want, pix)
 }
