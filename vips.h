@@ -807,51 +807,8 @@ keep_exif_copyright(VipsImage *image) {
 	return found;
 }
 
-int
-vips_get_rgba_pixels_generate(VipsRegion *out, void *seq, void *a, void *b, gboolean *stop) {
-	VipsImage *img = (VipsImage *) a;
-	VipsRegion *reg = (VipsRegion *) seq;
-	VipsRect *rec = &out->valid;
-	uint8_t *pixels = b;
 
-	if (vips_region_prepare( reg, rec )){
-		vips_error_exit( NULL );
-	}
-
-	// To align with Go image.RGBA, pixels holds the image's pixels, in R, G, B, A order. 
-	// The pixel at (left, top) starts at pixels[top*stride + left*4].
-	// Where stride is the pixels stride (in bytes) between vertically adjacent pixels (width * 4 for RGBA images)
-	VipsPel *p = VIPS_REGION_ADDR(reg, rec->left, rec->top);
-
-	int stride = img->Xsize * 4;
-	int offset = rec->top * stride + rec->left * 4;
-	int bands = reg->im->Bands;
-	
-	pixels[offset] = p[0]; //R
-	pixels[offset+1] = p[1]; //G
-	pixels[offset+2] = p[2]; //B
-	pixels[offset+3] = 255; //A
-	if (bands == 4) {
-		pixels[offset+3] = p[3];
-	}
-	return 0;
-}
-
-int vips_get_rgba_pixels(VipsImage *image, uint8_t **pixels) {
-	int pixels_size = image->Xsize * image->Ysize * 4;
-	*pixels = VIPS_ARRAY( NULL, pixels_size, uint8_t );
-	vips_sink_tile(image,
-		1,
-		1,
-        vips_start_one,
-        vips_get_rgba_pixels_generate,
-        vips_stop_one,
-        image,
-        *pixels);
-	return 0;
-}
-
-int vips_get_rgba_pixels_generate_new(VipsRegion *out, void *seq, void *a, void *b, gboolean *stop) {
+int vips_get_rgba_pixels_generate(VipsRegion *out, void *seq, void *a, void *b, gboolean *stop) {
 	VipsImage *img = (VipsImage *) a;
 	VipsRegion *reg = (VipsRegion *) seq;
 	VipsRect *rec = &out->valid;
@@ -859,10 +816,11 @@ int vips_get_rgba_pixels_generate_new(VipsRegion *out, void *seq, void *a, void 
 
 
 	if (vips_region_prepare(reg, rec)) {
-		vips_error_exit( NULL );
+		vips_error("bimg", "could not prepare vips region");
+		return -1;
 	}
 
-	// fprintf(stderr, "vips_get_rgba_pixels_generate_new() - vipsregion width %d, vipsregion height %d\n", 
+	// fprintf(stderr, "vips_get_rgba_pixels_generate() - vipsregion width %d, vipsregion height %d\n", 
 	// 	vips_region_width(reg), vips_region_height(reg));
 
 	// To align with Go image.RGBA, pixels holds the image's pixels, in R, G, B, A order. 
@@ -872,72 +830,60 @@ int vips_get_rgba_pixels_generate_new(VipsRegion *out, void *seq, void *a, void 
 
 	int stride = img->Xsize * 4;
 	int bands = reg->im->Bands;
-	
-	// int offset = (rec->top) * stride + (rec->left) * 4;
-	// fprintf(stderr, "stride %d, img->Xsize %d, rec->top %d, rec->left %d, offset %d, bands %d\n", 
-	// 	stride, img->Xsize, rec->top, rec->left, offset, bands);
-	
+		
 	int w = vips_region_width(reg);
 	int h = vips_region_height(reg);
 
 	// fprintf(stderr, "region size %d x %d\n", w, h);
+	// fprintf(stderr, "bands %d\n", bands);
 
 	int region_offset = 0;
-	for (int x = 0; x < w; x++) {
-		for (int y = 0; y < h; y++) {
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
 			int offset = (rec->top+y) * stride + (rec->left+x) * 4;
-			pixels[offset] = p[region_offset]; //R
-			pixels[offset+1] = p[region_offset+1]; //G
-			pixels[offset+2] = p[region_offset+2]; //B
-			pixels[offset+3] = 255; //A
-			region_offset = region_offset+3;
-			//TODO handle images with 1 band
-			if (bands == 4) {
-				pixels[offset+3] = p[region_offset+3];
+			int r, g, b, a = 255;
+			switch(bands) {
+			case 4:
+				r = p[region_offset];
+				g = p[region_offset+1]; 
+				b = p[region_offset+2];
+				a = p[region_offset+3];
+				region_offset = region_offset+4;
+				break;
+			case 3:
+				r = p[region_offset];
+				g = p[region_offset+1]; 
+				b = p[region_offset+2];
+				region_offset = region_offset+3;
+				break;
+			case 1:
+				r = g = b = p[region_offset];
 				region_offset++;
+				break;
+			default:
+				vips_error("bimg", "image is not 1, 3 or 4 bands, has: %d", bands );
+				return -1;
 			}
-			// fprintf(stderr, "pixel values at %dx%d (R,G,B,A: %d,%d,%d,%d)\n", x, y, p[region_offset], p[region_offset+1], p[region_offset+2], pixels[offset+3]);
+			// fprintf(stderr, "pixel values at %dx%d (R,G,B,A: %d,%d,%d,%d)\n", (rec->left+x),(rec->top+y), r, g, b, a);
+			pixels[offset] = r;
+			pixels[offset+1] = g;
+			pixels[offset+2] = b;
+			pixels[offset+3] = a;
 		}	
 	}
-
-	// for (int i,o = 0; i<(w*h*bands); i++ ) {
-	// 	 fprintf(stderr, "filing pixels at offset %d + %d, taking pixels at %d\n", offset, o, i);
-
-	// 	pixels[offset+o] = p[i];
-
-	// 	if ((i%3) == 0 && (i != 0)) {
-	// 		// alpha channel byte
-	// 		if (bands != 4) {
-	// 			pixels[offset+o] = 255;
-	// 			o++; // if band == 3 we need to add the A byte
-	// 			fprintf(stderr, "filing ALPHA pixel at offset %d + %d, taking pixels at %d\n", offset, o, i);
-	// 			pixels[offset+o] = p[i];
-	// 		}
-	// 	}
-	// 	o++;
-	// }
-
-		// pixels[offset] = p[0]; //R
-		// pixels[offset+1] = p[1]; //G
-		// pixels[offset+2] = p[2]; //B
-		// pixels[offset+3] = 255; //A
-		// if (bands == 4) {
-		// 	pixels[offset+3] = p[3];
-		// }
 
 	return 0;
 }
 
-int vips_get_rgba_pixels_new(VipsImage *image, uint8_t **pixels) {
+int vips_get_rgba_pixels(VipsImage *image, uint8_t **pixels) {
 	int pixels_size = image->Xsize * image->Ysize * 4;
 	*pixels = VIPS_ARRAY( NULL, pixels_size, uint8_t );
-	vips_sink_tile(image,
+	return vips_sink_tile(image,
 		64,
 		64,
         vips_start_one,
-        vips_get_rgba_pixels_generate_new,
+        vips_get_rgba_pixels_generate,
         vips_stop_one,
         image,
         *pixels);
-	return 0;
 }
