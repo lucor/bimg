@@ -378,9 +378,9 @@ func Test_RGBAPixelsFormatBands(t *testing.T) {
 			t.Logf("TestRGBAPixels returned %d len rgba byte slice, width %d, height %d\n", len(pix), width, height)
 
 			if !bytes.Equal(tt.wantPixels, pix) {
+				printfImageAsRGBA(t, pix, width)
 				t.Fatal("invalid pixel data")
 				t.Logf("Image bytes: \n")
-				printfImageAsRGBA(t, pix, width)
 			}
 		})
 	}

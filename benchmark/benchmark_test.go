@@ -25,7 +25,10 @@ var images = []struct {
 
 func Benchmark_RGBAPixels(b *testing.B) {
 	for _, tt := range images {
-		imagefile, _ := os.ReadFile("testdata/" + tt.source)
+		imagefile, err := os.ReadFile("../testdata/" + tt.source)
+		if err != nil {
+			b.Fatal(err)
+		}
 		b.Run(tt.source, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				bimg.RGBAPixels(imagefile)

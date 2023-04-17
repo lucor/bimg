@@ -814,14 +814,13 @@ int vips_get_rgba_pixels_generate(VipsRegion *out, void *seq, void *a, void *b, 
 	VipsRect *rec = &out->valid;
 	uint8_t *pixels = b;
 
+	// fprintf(stderr, "vips_get_rgba_pixels_generate() - vipsregion width %d, vipsregion height %d\n", 
+	// 	vips_region_width(reg), vips_region_height(reg));
 
 	if (vips_region_prepare(reg, rec)) {
 		vips_error("bimg", "could not prepare vips region");
 		return -1;
 	}
-
-	// fprintf(stderr, "vips_get_rgba_pixels_generate() - vipsregion width %d, vipsregion height %d\n", 
-	// 	vips_region_width(reg), vips_region_height(reg));
 
 	// To align with Go image.RGBA, pixels holds the image's pixels, in R, G, B, A order. 
 	// The pixel at (left, top) starts at pixels[top*stride + left*4].
@@ -835,6 +834,7 @@ int vips_get_rgba_pixels_generate(VipsRegion *out, void *seq, void *a, void *b, 
 	int h = vips_region_height(reg);
 
 	// fprintf(stderr, "region size %d x %d\n", w, h);
+	// fprintf(stderr, "x,y %d x %d\n", rec->left, rec->top);
 	// fprintf(stderr, "bands %d\n", bands);
 
 	int region_offset = 0;
@@ -879,8 +879,8 @@ int vips_get_rgba_pixels(VipsImage *image, uint8_t **pixels) {
 	int pixels_size = image->Xsize * image->Ysize * 4;
 	*pixels = VIPS_ARRAY( NULL, pixels_size, uint8_t );
 	return vips_sink_tile(image,
-		64,
-		64,
+		-1,
+		-1,
         vips_start_one,
         vips_get_rgba_pixels_generate,
         vips_stop_one,
