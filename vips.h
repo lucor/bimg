@@ -856,6 +856,11 @@ int vips_get_rgba_pixels_generate(VipsRegion *out, void *seq, void *a, void *b, 
 				b = p[region_offset+2];
 				region_offset = region_offset+3;
 				break;
+			case 2:
+				r = g = b = p[region_offset];
+				a = p[region_offset+1];
+				region_offset = region_offset+2;
+				break;
 			case 1:
 				r = g = b = p[region_offset];
 				region_offset++;
