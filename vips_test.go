@@ -408,3 +408,26 @@ func Test_RGBAPixelsGrayscaleWithAlpha(t *testing.T) {
 		t.Fatalf("wrong slice len %d\n", len(pix))
 	}
 }
+
+func Test_RGBAPixelsOutOfBands(t *testing.T) {
+	imagefile, err := os.ReadFile("testdata/16384x16384.png")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pix, width, height, err := RGBAPixels(imagefile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if width != 16384 {
+		t.Fatalf("wrong width %d\n", width)
+	}
+
+	if height != 16384 {
+		t.Fatalf("wrong height %d\n", height)
+	}
+
+	if height*width*4 != len(pix) {
+		t.Fatalf("wrong slice len %d\n", len(pix))
+	}
+}

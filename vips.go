@@ -1188,6 +1188,6 @@ func RGBAPixels(buf []byte) ([]uint8, int, int, error) {
 	if errC != 0 {
 		return nil, 0, 0, catchVipsError()
 	}
-	pixels := (*[1 << 28]uint8)(unsafe.Pointer(out))[:length:length]
+	pixels := (*[math.MaxUint32]uint8)(unsafe.Pointer(out))[:length:length]
 	return pixels, w, h, nil
 }
