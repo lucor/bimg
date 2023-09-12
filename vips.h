@@ -524,40 +524,40 @@ vips_init_image (void *buf, size_t len, int imageType, int frames, VipsImage **o
 	int code = 1;
 
 	if (imageType == JPEG) {
-		code = vips_jpegload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+		code = vips_jpegload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, NULL);
 	} else if (imageType == PNG) {
-		code = vips_pngload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+		code = vips_pngload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, NULL);
 	} else if (imageType == WEBP) {
-		code = vips_webpload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, "n", frames, NULL);
+		code = vips_webpload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, "n", frames, NULL);
 	} else if (imageType == TIFF) {
-		code = vips_tiffload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+		code = vips_tiffload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, NULL);
 #if (VIPS_MAJOR_VERSION >= 8)
 #if (VIPS_MINOR_VERSION >= 3)
 	} else if (imageType == GIF) {
 		code = vips_gifload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, "n", frames, NULL);
 	} else if (imageType == PDF) {
-		code = vips_pdfload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+		code = vips_pdfload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, NULL);
 	} else if (imageType == SVG) {
-		code = vips_svgload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+		code = vips_svgload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, NULL);
 #endif
 	} else if (imageType == MAGICK) {
-		code = vips_magickload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+		code = vips_magickload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, NULL);
 #endif
 #if (VIPS_MAJOR_VERSION > 8 || (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 8))
 	} else if (imageType == HEIF) {
-		code = vips_heifload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+		code = vips_heifload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, NULL);
 #endif
 #if (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 9)
 	} else if (imageType == AVIF) {
-		code = vips_heifload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, "n", frames, NULL);
+		code = vips_heifload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, "n", frames, NULL);
 #endif
 #if (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 11)
 	} else if (imageType == JP2K) {
-		code = vips_jp2kload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+		code = vips_jp2kload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, NULL);
 #endif
 #if (VIPS_MAJOR_VERSION == 8 && VIPS_MINOR_VERSION >= 12)
 	} else if (imageType == JXL) {
-		code = vips_jxlload_buffer(buf, len, out, "access", VIPS_ACCESS_RANDOM, NULL);
+		code = vips_jxlload_buffer(buf, len, out, "access", VIPS_ACCESS_SEQUENTIAL, NULL);
 #endif
 	}
 
