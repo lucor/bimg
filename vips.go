@@ -1169,12 +1169,32 @@ func stripMetadataIPTC(image *C.VipsImage) (bool, error) {
 
 // RGBAPixels returns a slice of RGBA pixels along with image width and height
 func RGBAPixels(buf []byte) ([]uint8, int, int, error) {
+	return rgbaPixels(buf, false)
+}
+
+// RGBAPixelsAutoRotate returns a slice of RGBA pixels along with image width and height.
+// It looks at the image metadata and rotate and flip the image to make it upright
+func RGBAPixelsAutoRotate(buf []byte) ([]uint8, int, int, error) {
+	return rgbaPixels(buf, true)
+}
+
+// rgbaPixels returns a slice of RGBA pixels along with image width and height.
+// If autorotate is true looks at the image metadata and rotate and flip the
+// image to make it upright
+func rgbaPixels(buf []byte, autorotate bool) ([]uint8, int, int, error) {
 	defer C.vips_thread_shutdown()
 	image, _, err := vipsReadAll(buf)
 	if err != nil {
 		return nil, 0, 0, err
 	}
 	defer C.g_object_unref(C.gpointer(image))
+
+	if autorotate {
+		image, err = vipsAutoRotate(image)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+	}
 
 	w := int(image.Xsize)
 	h := int(image.Ysize)
